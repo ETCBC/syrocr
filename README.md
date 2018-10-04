@@ -1,0 +1,2 @@
+OCR of Syriac text
+==================
