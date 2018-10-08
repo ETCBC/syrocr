@@ -8,15 +8,23 @@ LINEDIST_TEXT = 1/4 # standard line spacing is 1/4 inch (75px@300dpi)
 LINEDIST_APP = 2/11 # 2/11 inch (ca. 54px@300dpi, 4.6181818 mm)
 
 
-def scanpage(filename, dpi=None, verbose=True):
+def getlines(filename, dpi=None, verbose=False):
     '''Scan a page and return a list of line objects'''
     im = Im(filename, dpi)
-    lines = getlines(im, verbose=verbose)
+    lines = []
+    for b in getlineboundaries(im, verbose=verbose):
+        box = (0, b[0], im.width, b[1])
+        line = Line(lines, im, box)
+        if verbose:
+            print(line)
+        lines.append(line)
+    lines = replacecolumnlines(im, lines, verbose=verbose)
+
     maincol = findmaincolumn(lines)
 
-    return linestodict(filename, lines, maincol)
+    return linestodict(lines, maincol)
 
-def linestodict(filename, lines, maincol):
+def linestodict(lines, maincol):
     import json
     dictlines = []
     l, r = maincol
@@ -45,18 +53,7 @@ def linestodict(filename, lines, maincol):
 
         dictlines.append(dictline)
 
-    return {'filename': filename, 'lines': dictlines}
-
-def getlines(im, verbose=False):
-    lines = []
-    for b in getlineboundaries(im, verbose=verbose):
-        box = (0, b[0], im.width, b[1])
-        line = Line(lines, im, box)
-        if verbose:
-            print(line)
-        lines.append(line)
-    lines = replacecolumnlines(im, lines, verbose=verbose)
-    return lines
+    return dictlines
 
 def replacecolumnlines(im, lines, verbose=False):
     '''Split two column lines of type 'apparatus2' '''
