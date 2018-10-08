@@ -496,3 +496,67 @@ def getbaseline(im, box=None):
             max_pixels = s
             baseline = y
     return baseline
+
+#------------------------------------------------------------------------------
+# drawboxes functions to generate images with coloured line boxes
+#------------------------------------------------------------------------------
+
+def drawrect(drawcontext, xy, outline=None, width=0):
+    """Draw a rectangle with option to set outline width"""
+    # ImageDraw.rectangle() has no width option for some reason
+    try:
+        x1, y1, x2, y2 = xy
+    except ValueError:
+        (x1, y1), (x2, y2) = xy
+    points = (x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)
+    drawcontext.line(points, fill=outline, width=width)
+
+def drawboxes(filename, lines):
+    from PIL import Image, ImageDraw, ImageFont
+    # define some colours
+    # FOP = full opacity (255), HOP = half opacity (128), TRN = transparent
+    BLACK_FOP = (0,0,0,255)
+    WHITE_FOP = (255,255,255,255)
+    WHITE_TRN = (255,255,255,0)
+    RED_FOP = (255,0,0,255)
+    RED_HOP = (255,0,0,128)
+    GREEN_FOP = (0,255,0,255)
+    GREEN_HOP = (0,255,0,128)
+    # line widths
+    BASELINE_WIDTH = 4
+    SECTLINE_WIDTH = 4
+    # define font
+    FONT_FILE = 'Pillow/Tests/fonts/FreeMono.ttf'
+    FONT_SIZE = 32
+    BASELINE_ADJUST = 26
+    # define sections
+    SECTIONS = ('main', 'marginl', 'marginr')
+
+    # open base image
+    im = Image.open(filename).convert('RGBA')
+
+    # make a blank image for the text, initialized to transparent text color
+    txt = Image.new('RGBA', im.size, WHITE_TRN)
+
+    # get a font
+    fnt = ImageFont.truetype(FONT_FILE, FONT_SIZE, 0)
+    # get a drawing context
+    d = ImageDraw.Draw(txt)
+
+    # draw filename at top of image
+    d.text((10,10), filename, font=fnt, fill=BLACK_FOP)
+    for line in lines:
+        # draw baseline
+        points = [(0, line['baseline']), (im.width, line['baseline'])]
+        d.line(points, fill=GREEN_HOP, width=BASELINE_WIDTH)
+        for section in SECTIONS:
+            # draw sections
+            if line[section] is None:
+                continue
+            drawrect(d, line[section], outline=RED_HOP, width=SECTLINE_WIDTH)
+        # draw line tag
+        tag = f"{line['num']} {line['type']}: {line['baseline']}"
+        t_offset = 10, line['baseline'] - BASELINE_ADJUST
+        d.text(t_offset, tag, font=fnt, fill=BLACK_FOP)
+
+    return Image.alpha_composite(im, txt)
