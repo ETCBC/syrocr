@@ -1,6 +1,6 @@
 def usage():
     print("""Usage:
-syrocr.py getlines filename""")
+python3 syrocr.py getlines filename""")
 
 if __name__ == "__main__":
     # TODO This should be done with argparse
