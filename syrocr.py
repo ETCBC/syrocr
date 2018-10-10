@@ -23,7 +23,7 @@ if __name__ == "__main__":
     if args.getlines:
         source_image = args.getlines
         basename = os.path.basename(os.path.splitext(source_image)[0])
-        lines = getlines(source_image, dpi=(300,300), verbose=False)
+        lines = getlines(source_image, dpi=(300,300), verbose=args.verbose)
         im_lines = drawboxes(source_image, lines)
         im_lines.save(basename + '_lines.png', format="PNG")
         with open(basename + '_lines.json', 'w') as f:
