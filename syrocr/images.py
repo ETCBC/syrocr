@@ -63,6 +63,8 @@ class Im:
             box = box[1], box[0], box[3], box[2] #transpose coordinates
         return getrows(self.data_tr, self.height, box, reverse)
 
+    # def getboundaries(self, or='hor', box=None, offset=0)
+
 
 def getrows(data, width, box, reverse=False):
     x1, y1, x2, y2 = box
@@ -80,6 +82,26 @@ def getdpi(image, dpi):
             dpi = DEFAULT_DPI
     return dpi
 
+def getboundaries(sequence, start=0):
+    s = None
+    for i,e in enumerate(sequence, start):
+        if s is None and not isempty(e):
+            s = i
+        elif s is not None and isempty(e):
+            yield(s,i)
+            s = None
+    if s is not None:
+        yield (s, i+1)
+
+def isempty(row):
+    # In an inverted image, black (0 or False) is empty,
+    # any other value (white or 255 or True) is not empty.
+    # So if not any pixel in the row is True, the row is empty
+    # return not any(bool(p) for p in row)
+    try:
+        return not any(row)
+    except TypeError:
+        return not bool(row)
 
 ###############################################################################
 # BoundIm class and functions

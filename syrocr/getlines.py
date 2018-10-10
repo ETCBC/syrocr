@@ -1,5 +1,4 @@
-# from images import Im
-from .images import Im
+from .images import Im, getboundaries
 
 # TODO make consistent use of constants, or not at all
 MAXLINEHEIGHT = 1/4 # If lineheight is higher than 1/4 inch (75px@300dpi),
@@ -127,28 +126,6 @@ def getlineboundaries(im, box=None, mindist = 5, minheight = 10, verbose=False):
                     yield prevb
                 prevb = (start, end)
     yield prevb
-
-def getboundaries(sequence, start=0):
-    s = None
-    for i,e in enumerate(sequence, start):
-        if s is None and not isempty(e):
-            s = i
-        elif s is not None and isempty(e):
-            yield(s,i)
-            s = None
-    if s is not None:
-        yield (s, i+1)
-
-
-def isempty(row):
-    # In an inverted image, black (0 or False) is empty,
-    # any other value (white or 255 or True) is not empty.
-    # So if not any pixel in the row is True, the row is empty
-    # return not any(bool(p) for p in row)
-    try:
-        return not any(row)
-    except TypeError:
-        return not bool(row)
 
 def splitlineboundaries(im, bounds, maxheight=MAXLINEHEIGHT, verbose=False):
     # vts-044_2L.tif: many overlapping lines.
