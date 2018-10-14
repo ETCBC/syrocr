@@ -1,5 +1,24 @@
 from .images import Im, BoundIm, getboundaries
 
+def addtochartable(table, char):
+    # table is a list of dicts: {'id': c_id, 'avgim': avgim, 'key': key}
+    if char.width >= 10:
+        char = char.strip_connecting_line()
+    found = False
+    for c in table:
+        offset = c['avgim'].compare(char.image(), char.baseline)
+        if offset:
+            c['avgim'].add(char.image(), char.baseline, offset)
+            found = True
+            break
+    if not found:
+        c = {'id': len(table),
+             'avgim': AvgIm(char.image(), char.baseline),
+             'key': None,
+            }
+        table.append(c)
+    return c
+
 def getcharacters(im, box=None, baseline=None, overlaps=None):
     '''Generator object yielding characters'''
     # overlaps is a list of (as yet unimplemented) additional boundaries
