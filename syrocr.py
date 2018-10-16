@@ -2,6 +2,8 @@
 
 import argparse, json, sys, os.path
 from syrocr.getlines import getlines, drawboxes
+from syrocr.getchars import scanpage
+from syrocr.images import AvgIm
 
 def command_getlines(args):
     source_image = args.source_image
@@ -20,6 +22,33 @@ def command_drawboxes(args):
         lines = json.load(f)
     im_lines = drawboxes(source_image, lines)
     im_lines.save(basename + '_lines.png', format="PNG")
+
+def command_getchars(args):
+    basename = os.path.basename(os.path.splitext(args.source_image)[0])
+
+    with open(args.json_lines_file, 'r') as f:
+        lines = json.load(f)
+
+    with open(args.json_tables_file, 'r') as f:
+        tables = json.load(f)
+    for textsize in tables:
+        for entry in tables[textsize]:
+            entry['avgim'] = AvgIm(
+                entry['avgim']['base64_str'],
+                entry['avgim']['baseline'],
+                entry['avgim']['width'],
+                entry['avgim']['height']
+                )
+    textlines, tables = scanpage(args.source_image, lines, tables, verbose=args.verbose)
+
+    with open(basename + '_textlines.json', 'w') as f:
+        json.dump(textlines, f, indent=2)
+    # TODO try converting avgim in json.dump with default serializer: https://stackoverflow.com/a/41200652
+    for textsize in tables:
+        for entry in tables[textsize]:
+            entry['avgim'] = entry['avgim'].export()
+    with open(args.json_tables_file, 'w') as f:
+        json.dump(tables, f)
 
 if __name__ == "__main__":
     # initialize main argument parser
@@ -58,6 +87,25 @@ if __name__ == "__main__":
         'json_file',
         help='Filename of json file')
     p_drawboxes.set_defaults(func=command_drawboxes)
+
+    # initialize subparser p_drawboxes
+    p_getchars = subparsers.add_parser(
+        'getchars',
+        help='Recognize individual characters')
+    p_getchars.add_argument(
+        '-v', '--verbose',
+        help='increase output verbosity',
+        action='store_true')
+    p_getchars.add_argument(
+        'source_image',
+        help='Filename of source image')
+    p_getchars.add_argument(
+        'json_lines_file',
+        help='Filename of json lines file')
+    p_getchars.add_argument(
+        'json_tables_file',
+        help='Filename of json tables file')
+    p_getchars.set_defaults(func=command_getchars)
 
     # parse arguments
     args = parser.parse_args()
