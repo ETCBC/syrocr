@@ -1,6 +1,45 @@
-from .images import Im, BoundIm, getboundaries
+from .images import Im, BoundIm, AvgIm, getboundaries
 
-def addtochartable(table, char):
+def scanpage(source_image, lines, tables, verbose=False):
+    im = Im(source_image)
+    textlines = []
+    for line in lines:
+        if verbose:
+            print('Line', line['num'], '...')
+        textline = {'num': line['num'], 'type': line['type']}
+        baseline = line['baseline']
+        for section in ('main', 'marginl', 'marginr'):
+            textline[section] = []
+            if not line[section]:
+                continue
+            textsize = get_textsize(line['type'], section)
+            table = tables[textsize]
+            # end of last character, None if first or after connecting line
+            # (this is to calculate character distance, for spacing)
+            end = None
+            for char, connecting_line in getcharacters(im, line[section], baseline):
+
+                d = None if end is None else char.offset[0] - end
+                end = None if connecting_line is not None else char.offset[0] + char.width
+                x, y = char.offset
+                box = (x, y, x + char.width, y + char.height)
+
+                c = findchar(table, char, update_avgim=True, add_to_table=True)
+
+                textline[section].append((c['id'], d, None, box))
+
+        textlines.append(textline)
+
+    return textlines, tables
+
+def get_textsize(linetype, section):
+    if section == 'main' and linetype in ('text', 'pagenr'):
+        textsize = 'normal'
+    else:
+        textsize = 'small'
+    return textsize
+
+def findchar(table, char, update_avgim=True, add_to_table=True):
     # table is a list of dicts: {'id': c_id, 'avgim': avgim, 'key': key}
     if char.width >= 10:
         char = char.strip_connecting_line()
@@ -8,16 +47,23 @@ def addtochartable(table, char):
     for c in table:
         offset = c['avgim'].compare(char.image(), char.baseline)
         if offset:
-            c['avgim'].add(char.image(), char.baseline, offset)
-            found = True
+            found = c
+            if update_avgim:
+                c['avgim'].add(char.image(), char.baseline, offset)
             break
-    if not found:
-        c = {'id': len(table),
-             'avgim': AvgIm(char.image(), char.baseline),
-             'key': None,
-            }
-        table.append(c)
-    return c
+    if not found and add_to_table:
+        found = addtochartable(table, char)
+    return found
+
+def addtochartable(table, char):
+    # table is a list of dicts: {'id': c_id, 'avgim': avgim, 'key': key}
+    entry = {
+        'id': len(table),
+        'avgim': AvgIm(char.image(), char.baseline),
+        'key': None
+        }
+    table.append(entry)
+    return entry
 
 def getcharacters(im, box=None, baseline=None, overlaps=None):
     '''Generator object yielding characters'''
