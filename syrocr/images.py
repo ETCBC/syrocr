@@ -63,8 +63,21 @@ class Im:
             box = box[1], box[0], box[3], box[2] #transpose coordinates
         return getrows(self.data_tr, self.height, box, reverse)
 
-    # def getboundaries(self, or='hor', box=None, offset=0)
+    # methods that return Image object must return Im object
+    def crop(self, *args, **kwargs):
+        return Im(self.image.crop(*args, **kwargs), dpi=self.dpi)
 
+    # methods that change self.image also need to update self.data*
+    def paste(self, *args, **kwargs):
+        self.image.paste(*args, **kwargs)
+        # save pixel data in a tuple
+        self.data = tuple(self.image.getdata())
+        # save pixel data for transposed image in another tuple
+        self.data_tr = tuple(self.image.transpose(Image.TRANSPOSE).getdata())
+
+    def boundim(self, offset, baseline):
+        boundaries = list(list(getboundaries(col)) for col in self.cols())
+        return BoundIm(self.height, offset, boundaries, baseline)
 
 def getrows(data, width, box, reverse=False):
     x1, y1, x2, y2 = box
