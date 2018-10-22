@@ -86,11 +86,12 @@ def getcharacters(im, box=None, baseline=None, overlaps=None):
     # per column.
 
     # TODO probably need to change this to implement overlapping areas
-    boundaries = (list(getboundaries(col)) for col in im.cols(box))
+    relativebaseline = baseline - offset[1]
+    boundim = im.crop(box).boundim(offset, relativebaseline)
 
     # First, isolate separate pixel groups, which can be characters,
     # parts of characters, diacritical points, or connected characters
-    pixelgroups = separatepixelgroups(boundaries, height, offset, baseline)
+    pixelgroups = separatepixelgroups(boundim)
 
     # Then, check if pixel groups consist of connected characters,
     # and if so, isolate the characters by splitting them on the
@@ -111,14 +112,14 @@ def getcharacters(im, box=None, baseline=None, overlaps=None):
     return sortcharacters(characters)
 
 
-def separatepixelgroups(boundaries, height, offset, baseline):
-
-    # subtract vertical offset from absolute baseline value to get relative baseline
-    relativebaseline = baseline - offset[1] if baseline is not None else None
+def separatepixelgroups(boundim):
+    height = boundim.height
+    baseline = boundim.baseline
+    x, y = boundim.offset
 
     curgroups = []
 
-    for i, bounds in enumerate(boundaries):
+    for i, bounds in enumerate(boundim.boundaries):
 
         # first, check which boundaries are connected to active characters,
         # keep the connected characters and move the unconnected ones to the 'chars' list
@@ -152,7 +153,7 @@ def separatepixelgroups(boundaries, height, offset, baseline):
                 else:
                     curgroups.append(c)
             if curgroup is None:
-                curgroup = BoundIm(height, (offset[0] + i, offset[1]), baseline=relativebaseline)
+                curgroup = BoundIm(height, (x + i, y), None, baseline)
                 curgroup.addboundary(b)
             curgroups.append(curgroup)
 
