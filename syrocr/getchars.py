@@ -96,7 +96,7 @@ def getcharacters(im, box=None, baseline=None, overlaps=None):
     # Then, check if pixel groups consist of connected characters,
     # and if so, isolate the characters by splitting them on the
     # connecting line.
-    splitchars = (char for group in pixelgroups for char in splitpixelgroup(group, baseline))
+    splitchars = splitpixelgroups(pixelgroups)
 
     # Finally, find small pixel groups and try to reconnect them
     # to other groups that overlap with them vertically.
@@ -162,6 +162,98 @@ def separatepixelgroups(boundim):
         # yield cropped(curgroups.pop(0))
         yield curgroups.pop(0).cropped()
 
+def splitpixelgroups(boundims, minsplitwidth=25, mincharheight=4):
+    for boundim in boundims:
+        baseline = boundim.baseline
+        connectingbounds = getconnectingline(boundim, maxheight=6)
+        if boundim.width < minsplitwidth or connectingbounds is None:
+            connecting_line = None # TODO None to False
+            yield (boundim, connecting_line)
+            continue
+
+        start, end = connectingbounds
+        x, y = offset = boundim.offset
+        height = boundim.height
+        box = (0, start, boundim.width, end)
+
+        def connectedabove(boundim):
+            return boundim.offset[1] - y + boundim.height == start
+
+        def connectedbelow(boundim):
+            return boundim.offset[1] - y == end
+
+        split_im = boundim.image() # get Im image of pixelgroup from BoundIm
+        split_line = split_im.crop(box) # copy connecting line out of split_im
+        split_im.paste(0, box) # delete connecting line from split_im
+
+        # prepare BoundIm objects for split_im and split_line
+        split_group = split_im.boundim(boundim.offset, baseline)
+        group_line = split_line.boundim((x, start + y), baseline - start)
+
+        subgroups = list(separatepixelgroups(split_group))
+        for i, subgroup in enumerate(subgroups):
+            if subgroup is None:
+                continue
+            if subgroup.height < mincharheight and (connectedabove(subgroup) or connectedbelow(subgroup)):
+                group_line = group_line.combine(subgroup)
+                subgroups[i] = None
+            else:
+                for j, cmpgroup in enumerate(subgroups[i+1:]):
+                    if cmpgroup is None:
+                        continue
+                    xa1, xa2 = subgroup.offset[0], subgroup.offset[0] + subgroup.width
+                    xb1, xb2 = cmpgroup.offset[0], cmpgroup.offset[0] + cmpgroup.width
+                    opposites = ((connectedabove(subgroup) and connectedbelow(cmpgroup)) or
+                                  connectedabove(cmpgroup) and connectedbelow(subgroup))
+                    if (overlap((xa1, xa2), (xb1, xb2)) and opposites):
+                        subgroups[i] = subgroup.combine(cmpgroup)
+                        subgroups[i+1+j] = None
+
+        subgroups = [group for group in subgroups if group is not None]
+
+        for i, subgroup in enumerate(subgroups):
+            connecting_line = True
+            x1 = subgroup.offset[0] - split_group.offset[0]
+            x2 = x1 + subgroup.width
+            # if first or last group, do not cut off extending connecting line
+            if i == 0:
+                x1 = 0
+            if i == len(subgroups) - 1:
+                x2 = split_group.width
+                connecting_line = None
+            yield (subgroup.combine(group_line.slice(x1,x2)), connected)
+
+def getconnectingline(boundim, maxheight=6):
+    rows = boundim.image().rows()
+    maxlengths = [max([e-s for s,e in getboundaries(row)]) for row in rows]
+    avgmaxlen = sum(maxlengths)/len(maxlengths)
+    # in case maxheight=6:
+    # connecting line can be at most 6 pixels high
+    # and should overlap with baseline: so look only
+    # at the range from baseline-6 to baseline+6
+    search_start = max(boundim.baseline - maxheight, 0) # make sure it is not negative
+    search_end = boundim.baseline + maxheight
+    start, end = None, None
+    for i, maxlength in enumerate(maxlengths[search_start:search_end]):
+        is_connecting_line = (maxlength > (avgmaxlen * 2))
+        row_nr = i + search_start
+        if is_connecting_line:
+            if start is None:
+                start = row_nr
+            end = row_nr + 1
+    if start is None:
+        return None
+    else:
+        # add row with longest maxlength until maxheight reached
+        while end - start < maxheight:
+            if len(maxlengths) > end and maxlengths[end] >= maxlengths[start-1]:
+                end += 1
+            else:
+                start -= 1
+        return start, end
+
+# splitpixelgroup(): DEPRECATED
+# in favour of splitpixelgroups (check for obsolete helper functions)
 def splitpixelgroup(boundim, baseline=None):
     '''
     Split a pixel group into characters on the connecting line
