@@ -165,7 +165,7 @@ def separatepixelgroups(boundim):
 def splitpixelgroups(boundims, minsplitwidth=25, mincharheight=4):
     for boundim in boundims:
         baseline = boundim.baseline
-        connectingbounds = getconnectingline(boundim, maxheight=6)
+        connectingbounds = getconnectingline2(boundim, c_height=6)
         if boundim.width < minsplitwidth or connectingbounds is None:
             connecting_line = None # TODO None to False
             yield (boundim, connecting_line)
@@ -223,6 +223,46 @@ def splitpixelgroups(boundims, minsplitwidth=25, mincharheight=4):
                 connecting_line = None
             yield (subgroup.combine(group_line.slice(x1,x2)), connected)
 
+def getconnectingline2(boundim, c_height=6):
+    """Find top and bottom edge of connecting line.
+
+    Search around boundim.baseline for the rows with the highest
+    number of pixels. The value of c_height determines the number
+    of rows to consider, as well as the area to search in (being
+    between boundim.baseline - c_height and boundim.baseline + c_height)
+
+    Args:
+        boundim (BoundIm): a BoundIm image object
+        c_height (int): height of the connecting line in pixel rows
+
+    Returns:
+        tuple (int, int): top and bottom edge value of connecting line
+
+    """
+    # first get total number of pixels per horizontal row
+    rows = boundim.image().rows()
+    px_per_row = [sum([bool(p) for p in row]) for row in rows]
+
+    # set initial value for top of connecting line,
+    # from which to search downward
+    c_start = max(boundim.baseline - c_height, 0)
+
+    # initialize values
+    max_total = 0
+    max_start = c_start
+
+    # loop
+    while c_start <= boundim.baseline and c_start + c_height <= boundim.height:
+        c_end = c_start + c_height
+        total_px = sum(px_per_row[c_start:c_end])
+        if total_px >= max_total:
+            max_total = total_px
+            max_start = c_start
+        c_start += 1
+    return max_start, min(max_start + c_height, boundim.height)
+
+# getconnectingline(): DEPRECATED
+# in favour of getconnectingline2()
 def getconnectingline(boundim, maxheight=6):
     rows = boundim.image().rows()
     maxlengths = [max([e-s for s,e in getboundaries(row)]) for row in rows]
