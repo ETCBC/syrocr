@@ -87,7 +87,7 @@ def getcharacters(im, box=None, baseline=None, overlaps=None):
 
     # TODO probably need to change this to implement overlapping areas
     relativebaseline = baseline - offset[1]
-    boundim = im.crop(box).boundim(offset, relativebaseline)
+    boundim = im.close_gaps(box, gap=2).boundim(offset, relativebaseline)
 
     # First, isolate separate pixel groups, which can be characters,
     # parts of characters, diacritical points, or connected characters
@@ -163,65 +163,131 @@ def separatepixelgroups(boundim):
         yield curgroups.pop(0).cropped()
 
 def splitpixelgroups(boundims, minsplitwidth=25, mincharheight=4):
+    """Generator yielding characters, split on connecting line.
+
+    Loop over sequence of BoundIm's, if width is minsplitwidth
+    or more, try to split with splitpixelgroup2(). Yield one
+    character at a time as BoundIm.
+
+    Args:
+        boundims: Sequence of BoundIm objects.
+        minsplitwidth (int): minimum width in pixels to attempt split.
+        mincharheight (int): minimum height in pixels above/below
+            connecting line, in order to be recognized as character.
+
+    Yields:
+        (BoundIm, bool): The (split) character, and a bool value which
+            is True if the character is connected to the next one
+
+    """
     for boundim in boundims:
-        baseline = boundim.baseline
-        connectingbounds = getconnectingline2(boundim, c_height=6)
-        if boundim.width < minsplitwidth or connectingbounds is None:
+        if boundim.width < minsplitwidth:
             connecting_line = None # TODO None to False
             yield (boundim, connecting_line)
-            continue
+        else:
+            groups = splitpixelgroup2(boundim, mincharheight)
+            for group in groups:
+                yield group
 
-        start, end = connectingbounds
-        x, y = offset = boundim.offset
-        height = boundim.height
-        box = (0, start, boundim.width, end)
+def splitpixelgroup2(boundim, mincharheight=4):
+    """Split a group off connected characters.
 
-        def connectedabove(boundim):
-            return boundim.offset[1] - y + boundim.height == start
+    Looks for the connecting line which connects the characters,
+    removes the pixels of the connecting line, which leaves the
+    characters unconnected. Separates the characters and reconnects
+    them with the corresponding section of the connecting line.
+    Returns a list of tuples with the BoundIm and a boolean
+    value indicating if the character is connected to the next.
 
-        def connectedbelow(boundim):
-            return boundim.offset[1] - y == end
+    Args:
+        boundims: Sequence of BoundIm objects.
+        minsplitwidth (int): minimum width in pixels to attempt split.
+        mincharheight (int): minimum height in pixels above/below
+            connecting line, in order to be recognized as character.
 
-        split_im = boundim.image() # get Im image of pixelgroup from BoundIm
-        split_line = split_im.crop(box) # copy connecting line out of split_im
-        split_im.paste(0, box) # delete connecting line from split_im
+    Returns:
+        [(BoundIm, bool), ... ]: The (split) character, and a bool value
+            which is True if the character is connected to the next one
 
-        # prepare BoundIm objects for split_im and split_line
-        split_group = split_im.boundim(boundim.offset, baseline)
-        group_line = split_line.boundim((x, start + y), baseline - start)
+    """
+    baseline = boundim.baseline
+    connectingbounds = getconnectingline2(boundim)
 
-        subgroups = list(separatepixelgroups(split_group))
-        for i, subgroup in enumerate(subgroups):
-            if subgroup is None:
-                continue
-            if subgroup.height < mincharheight and (connectedabove(subgroup) or connectedbelow(subgroup)):
-                group_line = group_line.combine(subgroup)
-                subgroups[i] = None
-            else:
-                for j, cmpgroup in enumerate(subgroups[i+1:]):
-                    if cmpgroup is None:
-                        continue
-                    xa1, xa2 = subgroup.offset[0], subgroup.offset[0] + subgroup.width
-                    xb1, xb2 = cmpgroup.offset[0], cmpgroup.offset[0] + cmpgroup.width
-                    opposites = ((connectedabove(subgroup) and connectedbelow(cmpgroup)) or
-                                  connectedabove(cmpgroup) and connectedbelow(subgroup))
-                    if (overlap((xa1, xa2), (xb1, xb2)) and opposites):
-                        subgroups[i] = subgroup.combine(cmpgroup)
-                        subgroups[i+1+j] = None
+    start, end = connectingbounds
+    x, y = offset = boundim.offset
+    height = boundim.height
+    box = (0, start, boundim.width, end)
 
-        subgroups = [group for group in subgroups if group is not None]
+    def connectedabove(boundim):
+        return boundim.offset[1] - y + boundim.height == start
 
-        for i, subgroup in enumerate(subgroups):
-            connecting_line = True
-            x1 = subgroup.offset[0] - split_group.offset[0]
-            x2 = x1 + subgroup.width
-            # if first or last group, do not cut off extending connecting line
-            if i == 0:
-                x1 = 0
-            if i == len(subgroups) - 1:
-                x2 = split_group.width
-                connecting_line = None
-            yield (subgroup.combine(group_line.slice(x1,x2)), connected)
+    def connectedbelow(boundim):
+        return boundim.offset[1] - y == end
+
+    split_im = boundim.image() # get Im image of pixelgroup from BoundIm
+    split_line = split_im.crop(box) # copy connecting line out of split_im
+    split_im.paste(0, box) # delete connecting line from split_im
+
+    # prepare BoundIm objects for split_im and split_line
+    split_group = split_im.boundim(boundim.offset, baseline)
+    group_line = split_line.boundim((x, start + y), baseline - start)
+
+    subgroups = list(separatepixelgroups(split_group))
+
+    # compare every element in list with all others only once:
+    # see https://stackoverflow.com/a/48612840/9230612
+    for i, a in enumerate(subgroups):
+        for j, b in enumerate(subgroups[i+1:]):
+            if a is not None and a.height < mincharheight and (connectedabove(a) or connectedbelow(a)):
+                group_line = group_line.combine(a)
+                a = subgroups[i] = None
+            if b is not None and b.height < mincharheight and (connectedabove(b) or connectedbelow(b)):
+                group_line = group_line.combine(b)
+                b = subgroups[i+1+j] = None
+            if a is not None and b is not None:
+                xa1, xa2 = a.offset[0], a.offset[0] + a.width
+                xb1, xb2 = b.offset[0], b.offset[0] + b.width
+                opposites = ((connectedabove(a) and connectedbelow(b)) or
+                              connectedabove(b) and connectedbelow(a))
+                if (overlap((xa1, xa2), (xb1, xb2)) and opposites):
+                    subgroups[i] = a.combine(b)
+                    subgroups[i+1+j] = None
+                # special case to recombine CHET - TODO this definition
+                # should be imported from somewhere else, not hardcoded
+                # in module
+                # EXPLANATION: (for normal text - TODO test for small text)
+                #   # TODO test/improve the values 5, 15, and 6
+                # - the two strokes of the CHET are both connected to the
+                #   top of the connecting line (connectedabove());
+                # - they are spaced no more than 6(?) pixels apart
+                # - they are both around 10 pixels high and wide (only
+                #   the section *above* the connecting line);
+                elif (
+                    (connectedabove(a) and connectedabove(b)) and
+                    b.offset[0] - (a.offset[0] + a.width) < 6 and
+                    all(5 < x.height < 15 for x in (a,b)) and
+                    all(5 < x.width < 15 for x in (a,b))
+                ):
+                    subgroups[i] = a.combine(b)
+                    subgroups[i+1+j] = None
+
+        # TODO this would be a good place to combine and yield subgroups[i] if not None
+
+    subgroups = [group for group in subgroups if group is not None]
+
+    for i, subgroup in enumerate(subgroups):
+        connecting_line = True
+        x1 = subgroup.offset[0] - split_group.offset[0]
+        x2 = x1 + subgroup.width
+        # if first or last group, do not cut off extending connecting line
+        if i == 0:
+            x1 = 0
+        if i == len(subgroups) - 1:
+            x2 = split_group.width
+            connecting_line = None
+        subgroups[i] = subgroup.combine(group_line.slice(x1,x2)), connected
+#         yield (subgroup.combine(group_line.slice(x1,x2)), connected)
+    return subgroups
 
 def getconnectingline2(boundim, c_height=6):
     """Find top and bottom edge of connecting line.
