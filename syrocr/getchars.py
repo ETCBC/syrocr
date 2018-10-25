@@ -87,7 +87,22 @@ def getcharacters(im, box=None, baseline=None, overlaps=None):
 
     # TODO probably need to change this to implement overlapping areas
     relativebaseline = baseline - offset[1]
-    boundim = im.close_gaps(box, gap=2).boundim(offset, relativebaseline)
+
+    # c_height: connecting_line height
+    c_height = 6
+
+    # The close_gaps() method closes gaps in the connecting line.
+    # A value of 2 seems to work well, but also closes the gaps
+    # between close groups such as alaph and the left seyame dot
+    # on rish (see e.g. Gn. vts_030_2L line 14 first word dp'r"').
+    # Alternatives: a value of 1, which may not close all gaps,
+    # or closing gaps in only a 'section' of the image, namely,
+    # the section around the baseline.
+    baselinesection = (relativebaseline - c_height, relativebaseline + c_height)
+    line_im = im.close_gaps(box, gap=2, section=baselinesection)
+#     line_im = im.close_gaps(box, gap=1)
+
+    boundim = line_im.boundim(offset, relativebaseline)
 
     # First, isolate separate pixel groups, which can be characters,
     # parts of characters, diacritical points, or connected characters
@@ -96,7 +111,7 @@ def getcharacters(im, box=None, baseline=None, overlaps=None):
     # Then, check if pixel groups consist of connected characters,
     # and if so, isolate the characters by splitting them on the
     # connecting line.
-    splitchars = splitpixelgroups(pixelgroups)
+    splitchars = splitpixelgroups(pixelgroups, c_height)
 
     # Finally, find small pixel groups and try to reconnect them
     # to other groups that overlap with them vertically.
@@ -162,7 +177,7 @@ def separatepixelgroups(boundim):
         # yield cropped(curgroups.pop(0))
         yield curgroups.pop(0).cropped()
 
-def splitpixelgroups(boundims, minsplitwidth=25, mincharheight=4):
+def splitpixelgroups(boundims, c_height=6, minsplitwidth=25, mincharheight=4):
     """Generator yielding characters, split on connecting line.
 
     Loop over sequence of BoundIm's, if width is minsplitwidth
@@ -171,6 +186,7 @@ def splitpixelgroups(boundims, minsplitwidth=25, mincharheight=4):
 
     Args:
         boundims: Sequence of BoundIm objects.
+        c_height (int): height in pixels of connecting line.
         minsplitwidth (int): minimum width in pixels to attempt split.
         mincharheight (int): minimum height in pixels above/below
             connecting line, in order to be recognized as character.
@@ -185,11 +201,11 @@ def splitpixelgroups(boundims, minsplitwidth=25, mincharheight=4):
             connecting_line = None # TODO None to False
             yield (boundim, connecting_line)
         else:
-            groups = splitpixelgroup2(boundim, mincharheight)
+            groups = splitpixelgroup2(boundim, c_height, mincharheight)
             for group in groups:
                 yield group
 
-def splitpixelgroup2(boundim, mincharheight=4):
+def splitpixelgroup2(boundim, c_height=6, mincharheight=4):
     """Split a group off connected characters.
 
     Looks for the connecting line which connects the characters,
@@ -201,7 +217,7 @@ def splitpixelgroup2(boundim, mincharheight=4):
 
     Args:
         boundims: Sequence of BoundIm objects.
-        minsplitwidth (int): minimum width in pixels to attempt split.
+        c_height (int): height in pixels of connecting line.
         mincharheight (int): minimum height in pixels above/below
             connecting line, in order to be recognized as character.
 
@@ -211,7 +227,7 @@ def splitpixelgroup2(boundim, mincharheight=4):
 
     """
     baseline = boundim.baseline
-    connectingbounds = getconnectingline2(boundim)
+    connectingbounds = getconnectingline2(boundim, c_height)
 
     start, end = connectingbounds
     x, y = offset = boundim.offset

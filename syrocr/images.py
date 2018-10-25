@@ -79,8 +79,8 @@ class Im:
         boundaries = list(list(getboundaries(col)) for col in self.cols())
         return BoundIm(self.height, offset, boundaries, baseline)
 
-    def close_gaps(self, box=None, gap=2):
-        return close_im_gaps(self, box=box, gap=gap)
+    def close_gaps(self, box=None, gap=2, section=None):
+        return close_im_gaps(self, box, gap, section)
 
 def getrows(data, width, box, reverse=False):
     x1, y1, x2, y2 = box
@@ -119,7 +119,7 @@ def isempty(row):
     except TypeError:
         return not bool(row)
 
-def close_im_gaps(im, box=None, gap=2):
+def close_im_gaps(im, box=None, gap=2, section=None):
     """returns Im with horizontal gaps filled"""
     if box is None:
         width, height = im.width, im.height
@@ -129,7 +129,10 @@ def close_im_gaps(im, box=None, gap=2):
         height = box[3] - box[1]
     boundaries = []
     for i, row in enumerate(im.rows(box)):
-        boundaries.append(closegaps(getboundaries(row), gap=gap))
+        if section is None or section[0] <= i <= section[1]:
+            boundaries.append(closegaps(getboundaries(row), gap=gap))
+        else:
+            boundaries.append(getboundaries(row))
     # turn boundaries back into image
     new_im = Image.new('L', (width, height))
     new_im.putdata(pxfrombounds(boundaries, width))
