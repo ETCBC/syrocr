@@ -213,32 +213,34 @@ class BoundIm:
         '''Combines self and boundim2 and returns as new BoundIm'''
         return combineboundims(self, boundim2)
 
-    def strip_connecting_line(self):
-        return strip_connecting_line(self)
-
-def strip_connecting_line(boundim):
-    start = 0
-    end = boundim.width - 1
-    while ( start < boundim.width - 1
-            and (not boundim.boundaries[start]
-            or isconnectingline((boundim.boundaries[start][0][0], boundim.boundaries[start][-1][1]), boundim.baseline))
-    ):
-        start += 1
-    while ( end > 1 and
-           (not boundim.boundaries[end]
-            or isconnectingline((boundim.boundaries[end][0][0], boundim.boundaries[end][-1][1]), boundim.baseline))
-    ):
-        end -= 1
-    if start >= end:
-        return boundim
-    else:
-        return boundim.slice(start, end)
-
-def isconnectingline(bound, baseline, maxheight=6, maxdeviation=4):
-    start, end = bound
-    return (end - start < maxheight and # if not too high
-            end < baseline + maxdeviation and
-            start > baseline - maxdeviation - maxheight)
+# strip_connecting_line() methods DEPRECATED
+# (no longer necessary since splitpixelgroup2() removes connecting line)
+#     def strip_connecting_line(self):
+#         return strip_connecting_line(self)
+#
+# def strip_connecting_line(boundim):
+#     start = 0
+#     end = boundim.width - 1
+#     while ( start < boundim.width - 1
+#             and (not boundim.boundaries[start]
+#             or isconnectingline((boundim.boundaries[start][0][0], boundim.boundaries[start][-1][1]), boundim.baseline))
+#     ):
+#         start += 1
+#     while ( end > 1 and
+#            (not boundim.boundaries[end]
+#             or isconnectingline((boundim.boundaries[end][0][0], boundim.boundaries[end][-1][1]), boundim.baseline))
+#     ):
+#         end -= 1
+#     if start >= end:
+#         return boundim
+#     else:
+#         return boundim.slice(start, end)
+#
+# def isconnectingline(bound, baseline, maxheight=6, maxdeviation=4):
+#     start, end = bound
+#     return (end - start < maxheight and # if not too high
+#             end < baseline + maxdeviation and
+#             start > baseline - maxdeviation - maxheight)
 
 def cropped(boundim):
     top = min(b[0] for col in boundim.boundaries for b in col)

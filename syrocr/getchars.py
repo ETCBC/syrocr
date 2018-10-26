@@ -41,8 +41,8 @@ def get_textsize(linetype, section):
 
 def findchar(table, char, update_avgim=True, add_to_table=True):
     # table is a list of dicts: {'id': c_id, 'avgim': avgim, 'key': key}
-    if char.width >= 10:
-        char = char.strip_connecting_line()
+    # if char.width >= 10:
+    #     char = char.strip_connecting_line()
     found = False
     for c in table:
         offset = c['avgim'].compare(char.image(), char.baseline)
