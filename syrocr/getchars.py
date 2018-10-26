@@ -325,23 +325,22 @@ def getconnectingline2(boundim, c_height=6):
     rows = boundim.image().rows()
     px_per_row = [sum([bool(p) for p in row]) for row in rows]
 
-    # set initial value for top of connecting line,
+    # set initial value for top and bottom of connecting line,
     # from which to search downward
     c_start = max(boundim.baseline - c_height, 0)
+    c_end = min(c_start + c_height + 1, boundim.height)
 
-    # initialize values
     max_total = 0
-    max_start = c_start
+    connecting_line = (c_start, c_end)
 
-    # loop
-    while c_start <= boundim.baseline and c_start + c_height <= boundim.height:
-        c_end = c_start + c_height
+    while c_start <= boundim.baseline and c_end <= boundim.height:
         total_px = sum(px_per_row[c_start:c_end])
         if total_px >= max_total:
             max_total = total_px
-            max_start = c_start
+            connecting_line = (c_start, c_end)
         c_start += 1
-    return max_start, min(max_start + c_height, boundim.height)
+        c_end += 1
+    return connecting_line
 
 # getconnectingline(): DEPRECATED
 # in favour of getconnectingline2()
