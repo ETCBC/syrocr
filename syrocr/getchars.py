@@ -1,7 +1,24 @@
+import json
 from .images import Im, BoundIm, AvgIm, getboundaries
 
-def scanpage(source_image, lines, tables, verbose=False):
-    im = Im(source_image)
+def scanpage(src_img_file, lines_file, tables_file, verbose=False):
+    if type(src_img_file) is str:
+        im = Im(src_img_file)
+    else:
+        im = src_img_file
+
+    if type(lines_file) is str:
+        with open(lines_file, 'r') as f:
+            lines = json.load(f)
+    else:
+        lines = lines_file
+
+    if type(tables_file) is str:
+        with open(tables_file, 'r') as f:
+            tables = json.load(f)
+    else:
+        tables = tables_file
+
     textlines = []
     for line in lines:
         if verbose:
