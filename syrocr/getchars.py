@@ -221,9 +221,9 @@ def splitpixelgroup2(boundim, c_height=6, mincharheight=4):
         mincharheight (int): minimum height in pixels above/below
             connecting line, in order to be recognized as character.
 
-    Returns:
-        [(BoundIm, bool), ... ]: The (split) character, and a bool value
-            which is True if the character is connected to the next one
+    Yields:
+        (BoundIm, bool): The (split) character, and a bool value which
+            is True if the character is connected to the next one
 
     """
     baseline = boundim.baseline
@@ -249,6 +249,9 @@ def splitpixelgroup2(boundim, c_height=6, mincharheight=4):
     group_line = split_line.boundim((x, start + y), baseline - start)
 
     subgroups = list(separatepixelgroups(split_group))
+
+    # flag indicating that no characters have been yielded yet
+    first_char = True
 
     # compare every element in list with all others only once:
     # see https://stackoverflow.com/a/48612840/9230612
@@ -287,24 +290,29 @@ def splitpixelgroup2(boundim, c_height=6, mincharheight=4):
                     subgroups[i] = a.combine(b)
                     subgroups[i+1+j] = None
 
-        # TODO this would be a good place to combine and yield subgroups[i] if not None
+        if a is not None:
+            if first_char:
+                first_char = False
+                # do not cut off extending connecting line of first character:
+                x1 = 0
+                connected_left = False
+            else:
+                x1 = a.offset[0] - split_group.offset[0]
+                connected_left = True
 
-    subgroups = [group for group in subgroups if group is not None]
+            # check if all remaining list items are None
+            last_char = all(g is None for g in subgroups[i+1:])
+            if last_char:
+                # do not cut off extending connecting line of last character:
+                x2 = split_group.width
+                connected_right = False
+            else:
+                x2 = a.offset[0] - split_group.offset[0] + a.width
+                connected_right = True
 
-    for i, subgroup in enumerate(subgroups):
-        connections = (True, True)
-        x1 = subgroup.offset[0] - split_group.offset[0]
-        x2 = x1 + subgroup.width
-        # if first or last group, do not cut off extending connecting line
-        if i == 0:
-            x1 = 0
-            connections = (False, True)
-        if i == len(subgroups) - 1:
-            x2 = split_group.width
-            connections = (connections[0], False)
-        subgroups[i] = subgroup.combine(group_line.slice(x1,x2)), connections
-#         yield (subgroup.combine(group_line.slice(x1,x2)), connected)
-    return subgroups
+            connections = (connected_left, connected_right)
+            boundim = a.combine(group_line.slice(x1, x2))
+            yield (boundim, connections)
 
 def getconnectingline2(boundim, c_height=6):
     """Find top and bottom edge of connecting line.
