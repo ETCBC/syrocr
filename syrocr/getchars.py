@@ -14,19 +14,14 @@ def scanpage(source_image, lines, tables, verbose=False):
                 continue
             textsize = get_textsize(line['type'], section)
             table = tables[textsize]
-            # end of last character, None if first or after connecting line
-            # (this is to calculate character distance, for spacing)
-            end = None
-            for char, connecting_line in getcharacters(im, line[section], baseline):
-
-                d = None if end is None else char.offset[0] - end
-                end = None if connecting_line is not None else char.offset[0] + char.width
+            for char, connections in getcharacters(im, line[section], baseline):
                 x, y = char.offset
                 box = (x, y, x + char.width, y + char.height)
+                tr_override = None
 
                 c = findchar(table, char, update_avgim=True, add_to_table=True)
 
-                textline[section].append((c['id'], d, None, box))
+                textline[section].append((c['id'], connections, tr_override, box))
 
         textlines.append(textline)
 
