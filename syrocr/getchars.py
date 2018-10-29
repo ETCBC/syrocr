@@ -264,8 +264,8 @@ def splitpixelgroup2(boundim, c_height=6, mincharheight=4):
                 opposites = ((connectedabove(a) and connectedbelow(b)) or
                               connectedabove(b) and connectedbelow(a))
                 if (overlap((xa1, xa2), (xb1, xb2)) and opposites):
-                    subgroups[i] = a.combine(b)
-                    subgroups[i+1+j] = None
+                    a = subgroups[i] = a.combine(b)
+                    b = subgroups[i+1+j] = None
                 # special case to recombine CHET - TODO this definition
                 # should be imported from somewhere else, not hardcoded
                 # in module
@@ -282,7 +282,7 @@ def splitpixelgroup2(boundim, c_height=6, mincharheight=4):
                     all(5 < x.height < 15 for x in (a,b)) and
                     all(5 < x.width < 15 for x in (a,b))
                 ):
-                    subgroups[i] = a.combine(b)
+                    a = subgroups[i] = a.combine(b)
                     subgroups[i+1+j] = None
 
         if a is not None:
