@@ -198,12 +198,12 @@ def splitpixelgroups(boundims, c_height=6, minsplitwidth=25, mincharheight=4):
     """
     for boundim in boundims:
         if boundim.width < minsplitwidth:
-            connecting_line = None # TODO None to False
-            yield (boundim, connecting_line)
+            connections = (False, False)
+            yield (boundim, connections)
         else:
             groups = splitpixelgroup2(boundim, c_height, mincharheight)
-            for group in groups:
-                yield group
+            for boundim, connections in groups:
+                yield (boundim, connections)
 
 def splitpixelgroup2(boundim, c_height=6, mincharheight=4):
     """Split a group off connected characters.
@@ -292,16 +292,17 @@ def splitpixelgroup2(boundim, c_height=6, mincharheight=4):
     subgroups = [group for group in subgroups if group is not None]
 
     for i, subgroup in enumerate(subgroups):
-        connecting_line = True
+        connections = (True, True)
         x1 = subgroup.offset[0] - split_group.offset[0]
         x2 = x1 + subgroup.width
         # if first or last group, do not cut off extending connecting line
         if i == 0:
             x1 = 0
+            connections = (False, True)
         if i == len(subgroups) - 1:
             x2 = split_group.width
-            connecting_line = None
-        subgroups[i] = subgroup.combine(group_line.slice(x1,x2)), connected
+            connections = (connections[0], False)
+        subgroups[i] = subgroup.combine(group_line.slice(x1,x2)), connections
 #         yield (subgroup.combine(group_line.slice(x1,x2)), connected)
     return subgroups
 
@@ -469,51 +470,55 @@ def reconnectdots(splitchars, min_size=4):
     smallgroups = []
 
     prevgroup = None
+    prev_conn = None
 
-    for group in splitchars:
+    for group, connections in splitchars:
 
         # discard very very small groups
-        if group[0].width * group[0].height <= min_size:
+        if group.width * group.height <= min_size:
             continue
 
         # the only reason there is a 'prevgroup', is that a small part may be broken off.
         # If that is so, reconnect, and then yield the previous group.
-        if (prevgroup is not None and issmallgroup(group) and
-            connectedwithgap(prevgroup[0], group[0]) and
+        if (prevgroup is not None
+            and not any(connections) and issmallgroup(group)
+            and connectedwithgap(prevgroup, group)
             # check if less than half the pixels of the group area is black,
             # which often means it is a broken off line segment
-            sum(b[1]-b[0] for col in group[0].boundaries for b in col) < group[0].width*group[0].height/2
+            and (sum(b[1]-b[0] for col in group.boundaries for b in col)
+                 < (group.width * group.height / 2))
         ):
             # group = (combineboundims(group[0], prevgroup[0]), prevgroup[1])
-            group = (group[0].combine(prevgroup[0]), prevgroup[1])
+            group = group.combine(prevgroup)
+            connections = prev_conn
             prevgroup = None
+            prev_conn = None
 
         # elif prevgroup is not None:
         #     yield prevgroup
 
-        if issmallgroup(group):
+        if not any(connections) and issmallgroup(group):
             # print(group[0], prevgroup[0])
             if prevgroup is not None:
-                smallgroup = group[0]
+                smallgroup = group
                 baselinedist = smallgroup.baseline - smallgroup.height
-                sectiondist = getsectiondist(smallgroup, prevgroup[0])
-            if (
-                prevgroup is not None
+                sectiondist = getsectiondist(smallgroup, prevgroup)
+            if (prevgroup is not None
                 # small group starts before prevgroup ends
-                and smallgroup.offset[0] < prevgroup[0].offset[0] + prevgroup[0].width
-                and (
+                and smallgroup.offset[0] < prevgroup.offset[0] + prevgroup.width
                 # is smallgroup is more than (say) 10px above the baseline,
                 # it should be less than that distance above the top of the
                 # section of the overlapping character
-                    (baselinedist > 10 and sectiondist < baselinedist)
+                and ((baselinedist > 10 and sectiondist < baselinedist)
                 # if it is not, it should be below the top of the section
                 # of the overlapping character
-                    or (baselinedist < 10 and 0 > sectiondist > -12)
+                     or (baselinedist < 10 and 0 > sectiondist > -12)
                 )
             ):
-                prevgroup = (prevgroup[0].combine(smallgroup), prevgroup[1])
+                prevgroup = prevgroup.combine(smallgroup)
+                # prev_conn stays the same
             else:
-                smallgroups.append(group[0])
+                smallgroups.append(group)
 
         else:
             prevsmallgroups = smallgroups
@@ -523,58 +528,54 @@ def reconnectdots(splitchars, min_size=4):
             for smallgroup in prevsmallgroups:
                 # baselinedist is the distance between the baseline and
                 # the bottom of the smallgroup
-                # print(smallgroup, group[0])
                 baselinedist = smallgroup.baseline - smallgroup.height
-                sectiondist = getsectiondist(smallgroup, group[0])
+                sectiondist = getsectiondist(smallgroup, group)
                 # if the small group ends before the current group starts (no overlap):
-                if smallgroup.offset[0] + smallgroup.width <= group[0].offset[0]:
-                    # print(smallgroup, group[0], 'first')
-                    # if the small group overlaps with the previous small group, combine them
-                    if (prevsmallgroup is not None and # (even if they are only very close)
-                        prevsmallgroup.offset[0] + prevsmallgroup.width + 2 >= smallgroup.offset[0]):
-                        # smallgroup = combineboundims(prevsmallgroup, smallgroup)
+                if smallgroup.offset[0] + smallgroup.width <= group.offset[0]:
+                    # if the small group overlaps with the previous small group,
+                    # combine them (even if they are only very close)
+                    if (prevsmallgroup is not None
+                        and (prevsmallgroup.offset[0] + prevsmallgroup.width + 2
+                             >= smallgroup.offset[0])
+                        ):
                         smallgroup = prevsmallgroup.combine(smallgroup)
                     # if they don't overlap, yield the previous small group
                     elif prevsmallgroup is not None:
-                        yield (prevsmallgroup, None)
+                        yield (prevsmallgroup, (False, False))
                     # update prevsmallgroup to current small group
                     prevsmallgroup = smallgroup
                 # if the small group does overlap with the current group, combine them
-#                 elif smallgroup.offset[0] + smallgroup.width <= group[0].offset[0] + group[0].width:
-                elif (
-                    smallgroup.offset[0] < group[0].offset[0] + group[0].width
-                    and (
-                    # is smallgroup is more than (say) 10px above the baseline,
-                    # it should be less than that distance above the top of the
-                    # section of the overlapping character
-                        (baselinedist > 10 and sectiondist < baselinedist)
-                    # if it is not, it should be below the top of the section
-                    # of the overlapping character
-                        or (baselinedist < 10 and 0 > sectiondist > -12)
-                    )
+                elif (smallgroup.offset[0] < group.offset[0] + group.width
+                      and (
+                      # is smallgroup is more than (say) 10px above the baseline,
+                      # it should be less than that distance above the top of the
+                      # section of the overlapping character
+                          (baselinedist > 10 and sectiondist < baselinedist)
+                      # if it is not, it should be below the top of the section
+                      # of the overlapping character
+                          or (baselinedist < 10 and 0 > sectiondist > -12)
+                      )
                 ):
-                    # print(smallgroup, '2nd')
-                    # group = (combineboundims(group[0], smallgroup), group[1])
-                    group = (group[0].combine(smallgroup), group[1])
+                    group = group.combine(smallgroup)
                 # if there is no overlap and small group comes after current group,
                 # put it back on the stack
                 else:
-                    # print(smallgroup, '3rd')
                     smallgroups.append(smallgroup)
             # if prevsmallgroup contains a small group, yield it
             if prevsmallgroup is not None:
-                yield (prevsmallgroup, None)
+                yield (prevsmallgroup, (False, False))
 
             if prevgroup is not None:
-                yield prevgroup
+                yield (prevgroup, prev_conn)
             prevgroup = group
+            prev_conn = connections
 
     if prevgroup is not None:
-        yield prevgroup
+        yield (prevgroup, prev_conn)
 
     # if there are any remaining smallgroups, yield those in order
     while smallgroups:
-        yield (smallgroups.pop(0), None)
+        yield (smallgroups.pop(0), (False, False))
 
 def getsectiondist(smallgroup, group):
     if not overlap((smallgroup.offset[0], smallgroup.offset[0]+smallgroup.width-1), (group.offset[0], group.offset[0]+group.width-1)):
@@ -654,12 +655,12 @@ def connectedwithgap(prevgroup, group, maxgap=2):
         ]
         return any(connected(prevbounds, b, gap=maxgap) for b in groupbounds)
 
-def issmallgroup(group):
-    '''Check whether grouptuple[0] is smaller than 144 pixels and grouptuple[1] is None'''
-    top = min(b[0] for col in group[0].boundaries for b in col)
-    bot = max(b[1] for col in group[0].boundaries for b in col)
+def issmallgroup(group, max_px=144):
+    '''Check whether group is smaller than max_px pixels'''
+    top = min(b[0] for col in group.boundaries for b in col)
+    bot = max(b[1] for col in group.boundaries for b in col)
     height = bot - top
-    return group[0].width * height < 144 and group[1] is None
+    return group.width * height < max_px
 
 def overlap(range1, range2):
     """Does the range (start1, end1) overlap with (start2, end2)?"""
@@ -674,18 +675,21 @@ def reconnectbrokencharacters(chars):
     """Connect overlapping characters
 
     If they overlap for at least the distance
-    of half the width of the narrowest one"""
+    of half the width of the narrowest one
+    """
     # TODO check for distance
-    prevchar = None
+    prev_char = None
+    prev_conn = None
 
-    for char in chars:
+    for char, connections in chars:
 
-        if prevchar is None:
-            prevchar = char
+        if prev_char is None:
+            prev_char = char
+            prev_conn = connections
             continue
 
-        b1 = prevchar[0].offset[0], prevchar[0].offset[0] + prevchar[0].width
-        b2 = char[0].offset[0], char[0].offset[0] + char[0].width
+        b1 = prev_char.offset[0], prev_char.offset[0] + prev_char.width
+        b2 = char.offset[0], char.offset[0] + char.width
         # make sure b1 contains narrowest character
         b1, b2 = sorted([b1, b2], key=lambda x: x[1]-x[0])
         # calculate overlap amount
@@ -698,15 +702,20 @@ def reconnectbrokencharacters(chars):
             # Should properly be done by checking proximity.
             and b2[1] - b2[0] < 20
            ):
-            connecting_line = prevchar[1] if prevchar[1] is not None else char[1]
-            yield (prevchar[0].combine(char[0]), connecting_line)
-            prevchar = None
+            # Assuming that at most one of the overlapping pixel groups
+            # is a connected character, figure out which one it is.
+            if not any(connections):
+                connections = prev_conn
+            yield (prev_char.combine(char), connections)
+            prev_char = None
+            prev_conn = None
         else:
-            yield prevchar
-            prevchar = char
+            yield (prev_char, prev_conn)
+            prev_char = char
+            prev_conn = connections
 
-    if prevchar is not None:
-        yield prevchar
+    if prev_char is not None:
+        yield (prev_char, prev_conn)
 
 def sortcharacters(chars):
     '''Sort characters back in right order
