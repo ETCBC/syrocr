@@ -19,10 +19,16 @@ def scanpage(src_img_file, lines_file, tables_file, verbose=False):
     else:
         tables = tables_file
 
+    if verbose:
+        # store number of entries in table for later reference
+        num_entries_page = {textsize:len(tables[textsize]) for textsize in tables}
+
     textlines = []
     for line in lines:
         if verbose:
-            print('Line', line['num'], '...')
+            print('Line', line['num'], '...', end=' ')
+            # store number of entries in tables
+            num_entries_line = {textsize:len(tables[textsize]) for textsize in tables}
         textline = {'num': line['num'], 'type': line['type']}
         baseline = line['baseline']
         for section in ('main', 'marginl', 'marginr'):
@@ -42,7 +48,34 @@ def scanpage(src_img_file, lines_file, tables_file, verbose=False):
 
         textlines.append(textline)
 
+        if verbose:
+            print_new_entries(tables, num_entries_line, 'line')
+
+    if verbose:
+        print_new_entries(tables, num_entries_page, 'page')
+        print_totals(tables)
+
     return textlines, tables
+
+def print_new_entries(tables, entries, unit):
+    printed = 0
+    for textsize in tables:
+        d = len(tables[textsize]) - entries[textsize]
+        if d:
+            if printed:
+                print(', ', end='')
+            print(f'{d} new entries in textsize "{textsize}"', end='')
+            printed += 1
+    if not printed:
+        print(f'No new entries for this {unit}.')
+    else:
+        print('.')
+
+def print_totals(tables):
+    print('Total entries: ', end='')
+    totals = [f'{textsize}: {len(tables[textsize]):2}' for textsize in tables]
+    print(', '.join(totals), '\n')
+
 
 def get_textsize(linetype, section):
     if section == 'main' and linetype in ('text', 'pagenr'):
