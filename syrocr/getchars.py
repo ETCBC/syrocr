@@ -291,7 +291,7 @@ def splitpixelgroup2(boundim, c_height=6, mincharheight=4):
 
     # prepare BoundIm objects for split_im and split_line
     split_group = split_im.boundim(boundim.offset, baseline)
-    group_line = split_line.boundim((x, start + y), baseline - start)
+    connecting_line = split_line.boundim((x, start + y), baseline - start)
 
     subgroups = list(separatepixelgroups(split_group))
 
@@ -303,10 +303,10 @@ def splitpixelgroup2(boundim, c_height=6, mincharheight=4):
     for i, a in enumerate(subgroups):
         for j, b in enumerate(subgroups[i+1:]):
             if a is not None and a.height < mincharheight and (connectedabove(a) or connectedbelow(a)):
-                group_line = group_line.combine(a)
+                connecting_line = connecting_line.combine(a)
                 a = subgroups[i] = None
             if b is not None and b.height < mincharheight and (connectedabove(b) or connectedbelow(b)):
-                group_line = group_line.combine(b)
+                connecting_line = connecting_line.combine(b)
                 b = subgroups[i+1+j] = None
             if a is not None and b is not None:
                 xa1, xa2 = a.offset[0], a.offset[0] + a.width
@@ -342,21 +342,21 @@ def splitpixelgroup2(boundim, c_height=6, mincharheight=4):
                 x1 = 0
                 connected_left = False
             else:
-                x1 = a.offset[0] - split_group.offset[0]
+                x1 = max(a.offset[0] - connecting_line.offset[0], 0)
                 connected_left = True
 
             # check if all remaining list items are None
             last_char = all(g is None for g in subgroups[i+1:])
             if last_char:
                 # do not cut off extending connecting line of last character:
-                x2 = split_group.width
+                x2 = connecting_line.width
                 connected_right = False
             else:
-                x2 = a.offset[0] - split_group.offset[0] + a.width
+                x2 = max(a.offset[0] - connecting_line.offset[0] + a.width, 0)
                 connected_right = True
 
             connections = (connected_left, connected_right)
-            boundim = a.combine(group_line.slice(x1, x2))
+            boundim = a.combine(connecting_line.slice(x1, x2))
             yield (boundim, connections)
 
 def getconnectingline2(boundim, c_height=6):
