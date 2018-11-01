@@ -36,6 +36,9 @@ def scanpage(src_img_file, lines_file, tables_file, verbose=False):
             if not line[section]:
                 continue
             textsize = get_textsize(line['type'], section)
+            # TODO for now, skip small text
+            if textsize == 'small':
+                continue
             table = tables[textsize]
             for char, connections in getcharacters(im, line[section], baseline):
                 x, y = char.offset
@@ -222,7 +225,7 @@ def separatepixelgroups(boundim):
         # yield cropped(curgroups.pop(0))
         yield curgroups.pop(0).cropped()
 
-def splitpixelgroups(boundims, c_height=6, minsplitwidth=25, mincharheight=4):
+def splitpixelgroups(boundims, c_height=6, minsplitwidth=20, mincharheight=4):
     """Generator yielding characters, split on connecting line.
 
     Loop over sequence of BoundIm's, if width is minsplitwidth
@@ -246,11 +249,11 @@ def splitpixelgroups(boundims, c_height=6, minsplitwidth=25, mincharheight=4):
             connections = (False, False)
             yield (boundim, connections)
         else:
-            groups = splitpixelgroup2(boundim, c_height, mincharheight)
+            groups = splitpixelgroup2(boundim, c_height, minsplitwidth, mincharheight)
             for boundim, connections in groups:
                 yield (boundim, connections)
 
-def splitpixelgroup2(boundim, c_height=6, mincharheight=4):
+def splitpixelgroup2(boundim, c_height=6, minsplitwidth=20, mincharheight=4):
     """Split a group off connected characters.
 
     Looks for the connecting line which connects the characters,
@@ -263,6 +266,7 @@ def splitpixelgroup2(boundim, c_height=6, mincharheight=4):
     Args:
         boundims: Sequence of BoundIm objects.
         c_height (int): height in pixels of connecting line.
+        minsplitwidth (int): minimum width in pixels to attempt split.
         mincharheight (int): minimum height in pixels above/below
             connecting line, in order to be recognized as character.
 
@@ -279,11 +283,67 @@ def splitpixelgroup2(boundim, c_height=6, mincharheight=4):
     height = boundim.height
     box = (0, start, boundim.width, end)
 
-    def connectedabove(boundim):
-        return boundim.offset[1] - y + boundim.height == start
+    # TODO the three functions below are very ugly and should be made
+    # TODO more elegant, probably using getboundaries() and overlap()
+    def connectedabove(boundim, connecting_line):
+        # since the dimensions of both boundim and connecting_line can
+        # have been changed since they were split, calculate the relative
+        # distance from the top of each BoundIm to get the pixel row
+        # corresponding with the 'start' value from connectingbounds
+        bim_row_n = start + y - boundim.offset[1] - 1
+        cln_row_n = start + y - connecting_line.offset[1]
+        # check if found values fall within dimensions of BoundIm's
+        if (0 <= bim_row_n < boundim.height
+            and 0 <= cln_row_n < connecting_line.height):
+            # get pixel rows
+            rel_offset = max(connecting_line.offset[0]-boundim.offset[0], 0)
+            bim_row = list(boundim.image().rows())[bim_row_n][rel_offset:]
+            rel_offset = max(boundim.offset[0]-connecting_line.offset[0], 0)
+            cln_row = list(connecting_line.image().rows())[cln_row_n][rel_offset:]
+            for b, c in zip(bim_row, cln_row):
+                if b and c:
+                    return True
+        return False
 
-    def connectedbelow(boundim):
-        return boundim.offset[1] - y == end
+    def connectedbelow(boundim, connecting_line):
+        # since the dimensions of both boundim and connecting_line can
+        # have been changed since they were split, calculate the relative
+        # distance from the top of each BoundIm to get the pixel row
+        # corresponding with the 'start' value from connectingbounds
+        bim_row_n = end + y - boundim.offset[1]
+        cln_row_n = end + y - connecting_line.offset[1] - 1
+        # check if found values fall within dimensions of BoundIm's
+        if (0 <= bim_row_n < boundim.height
+            and 0 <= cln_row_n < connecting_line.height):
+            # get pixel rows
+            rel_offset = max(connecting_line.offset[0]-boundim.offset[0], 0)
+            bim_row = list(boundim.image().rows())[bim_row_n][rel_offset:]
+            rel_offset = max(boundim.offset[0]-connecting_line.offset[0], 0)
+            cln_row = list(connecting_line.image().rows())[cln_row_n][rel_offset:]
+            for b, c in zip(bim_row, cln_row):
+                if b and c:
+                    return True
+        return False
+
+    def opposites(im1, im2, connecting_line):
+        # sort BoundIm's so im1 starts above im2
+        im1, im2 = sorted([im1, im2], key=lambda x: x.offset[1])
+        # check if im1 and im2 are connected to connecting_line
+        if connectedabove(im1, connecting_line) and connectedbelow(im2, connecting_line):
+            im1_row_n = start + y - im1.offset[1] - 1
+            im2_row_n = end + y - im2.offset[1]
+            # check if the pixel rows closest to connecting line overlap
+            if (0 <= im1_row_n < im1.height
+                and 0 <= im2_row_n < im2.height):
+                # get pixel rows
+                rel_offset = max(im2.offset[0]-im1.offset[0], 0)
+                im1_row = list(im1.image().rows())[im1_row_n][rel_offset:]
+                rel_offset = max(im1.offset[0]-im2.offset[0], 0)
+                im2_row = list(im2.image().rows())[im2_row_n][rel_offset:]
+                for b, c in zip(im1_row, im2_row):
+                    if b and c:
+                        return True
+        return False
 
     split_im = boundim.image() # get Im image of pixelgroup from BoundIm
     split_line = split_im.crop(box) # copy connecting line out of split_im
@@ -292,6 +352,26 @@ def splitpixelgroup2(boundim, c_height=6, mincharheight=4):
     # prepare BoundIm objects for split_im and split_line
     split_group = split_im.boundim(boundim.offset, baseline)
     connecting_line = split_line.boundim((x, start + y), baseline - start)
+
+    # split connecting line into pixelgroups, to separate short
+    # sections and reconnect those with corresponding characters
+    line_sections = list(separatepixelgroups(connecting_line))
+    connecting_line = None
+    for s in line_sections:
+        # if connecting section is short, add it back to split_group
+        # TODO add width attribute to BoundIm
+        if len(s.boundaries) < minsplitwidth:
+            split_group = split_group.combine(s)
+        else:
+            if connecting_line is None:
+                connecting_line = s
+            else:
+                connecting_line = connecting_line.combine(s)
+
+    if connecting_line is None:
+        connections = (False, False)
+        yield (split_group, connections)
+        return
 
     subgroups = list(separatepixelgroups(split_group))
 
@@ -302,18 +382,19 @@ def splitpixelgroup2(boundim, c_height=6, mincharheight=4):
     # see https://stackoverflow.com/a/48612840/9230612
     for i, a in enumerate(subgroups):
         for j, b in enumerate(subgroups[i+1:]):
-            if a is not None and a.height < mincharheight and (connectedabove(a) or connectedbelow(a)):
+            if a is not None and a.height < mincharheight and (connectedabove(a, connecting_line) or connectedbelow(a, connecting_line)):
                 connecting_line = connecting_line.combine(a)
                 a = subgroups[i] = None
-            if b is not None and b.height < mincharheight and (connectedabove(b) or connectedbelow(b)):
+            if b is not None and b.height < mincharheight and (connectedabove(b, connecting_line) or connectedbelow(b, connecting_line)):
                 connecting_line = connecting_line.combine(b)
                 b = subgroups[i+1+j] = None
             if a is not None and b is not None:
-                xa1, xa2 = a.offset[0], a.offset[0] + a.width
-                xb1, xb2 = b.offset[0], b.offset[0] + b.width
-                opposites = ((connectedabove(a) and connectedbelow(b)) or
-                              connectedabove(b) and connectedbelow(a))
-                if (overlap((xa1, xa2), (xb1, xb2)) and opposites):
+                # xa1, xa2 = a.offset[0], a.offset[0] + a.width
+                # xb1, xb2 = b.offset[0], b.offset[0] + b.width
+                # opposites = ((connectedabove(a, connecting_line) and connectedbelow(b, connecting_line)) or
+                #               connectedabove(b, connecting_line) and connectedbelow(a, connecting_line))
+                # if (overlap((xa1, xa2), (xb1, xb2)) and opposites):
+                if opposites(a, b, connecting_line):
                     a = subgroups[i] = a.combine(b)
                     b = subgroups[i+1+j] = None
                 # special case to recombine CHET - TODO this definition
@@ -327,7 +408,7 @@ def splitpixelgroup2(boundim, c_height=6, mincharheight=4):
                 # - they are both around 10 pixels high and wide (only
                 #   the section *above* the connecting line);
                 elif (
-                    (connectedabove(a) and connectedabove(b)) and
+                    (connectedabove(a, connecting_line) and connectedabove(b, connecting_line)) and
                     b.offset[0] - (a.offset[0] + a.width) < 6 and
                     all(5 < x.height < 15 for x in (a,b)) and
                     all(5 < x.width < 15 for x in (a,b))
