@@ -113,7 +113,7 @@ def addtochartable(table, char):
     table.append(entry)
     return entry
 
-def getcharacters(im, box=None, baseline=None, overlaps=None):
+def getcharacters(im, box=None, baseline=None, c_height=6, overlaps=None):
     '''Generator object yielding characters'''
     # overlaps is a list of (as yet unimplemented) additional boundaries
     # that are outside the box area since they overlap with other elements
@@ -135,9 +135,6 @@ def getcharacters(im, box=None, baseline=None, overlaps=None):
 
     # TODO probably need to change this to implement overlapping areas
     relativebaseline = baseline - offset[1]
-
-    # c_height: connecting_line height
-    c_height = 6
 
     # The close_gaps() method closes gaps in the connecting line.
     # A value of 2 seems to work well, but also closes the gaps
