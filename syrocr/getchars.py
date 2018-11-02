@@ -457,7 +457,7 @@ def getconnectingline2(boundim, c_height=6):
     # set initial value for top and bottom of connecting line,
     # from which to search downward
     c_start = max(boundim.baseline - c_height, 0)
-    c_end = min(c_start + c_height + 1, boundim.height)
+    c_end = min(c_start + c_height, boundim.height)
 
     max_total = 0
     connecting_line = (c_start, c_end)
