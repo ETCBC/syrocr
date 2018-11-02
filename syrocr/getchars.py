@@ -36,9 +36,6 @@ def scanpage(src_img_file, lines_file, tables_file, verbose=False):
             if not line[section]:
                 continue
             textsize = get_textsize(line['type'], section)
-            # TODO for now, skip small text
-            if textsize == 'small':
-                continue
             table = tables[textsize]
             for char, connections in getcharacters(im, line[section], baseline):
                 x, y = char.offset
