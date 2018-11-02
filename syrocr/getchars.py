@@ -826,8 +826,18 @@ def reconnectbrokencharacters(chars):
         # calculate overlap amount
         # https://stackoverflow.com/a/6821298
         overlap = min(b1[1], b2[1]) + 1 - max(b1[0], b2[0])
-        # check if overlap is at least as much as half the narrower character
-        if (overlap > ((b1[1] - b1[0]) / 2)
+        # since splitpixelgroup2() can yield images that overlap
+        # on the connecting line--but should not be reconnected--
+        # first check if not both characters have 'connections.'
+        # The attempt to combine truly overlapping images caused
+        # syrocr.images.pxfrombounds() to exceed the number of pixels,
+        # causing "TypeError: too many data entries" when using
+        # PIL.Image.putdata(pxdata).
+        # TODO fix this in syrocr.images.BoundIm.combine()``
+        both_connected = (any(prev_conn) and any(connections))
+        if (not both_connected
+            # check if overlap is at least as much as half the narrower character
+            and overlap > ((b1[1] - b1[0]) / 2)
             # TODO hackish way to prevent long tsade and nun
             # characters to combine with overlapping characters.
             # Should properly be done by checking proximity.

@@ -253,6 +253,12 @@ def cropped(boundim):
 
 def pxfrombounds(bounds, height, offvalue=0, onvalue=255):
     '''transform 'boundary' data into a list of pixel data'''
+    # WARNING: if 'bounds' contains overlapping boundaries,
+    # those pixels are added twice. Could be fixed by
+    # keeping track of 'pos' more accurately, but really
+    # there shouldn't be overlapping boundaries.
+    # BUG Causes raising of "TypeError: too many data entries"
+    # in PIL.Image.putdata(pxdata) when pxdata list is too long.
     pxdata = []
     for bcol in bounds:
         pos = 0
@@ -269,6 +275,12 @@ def pxfrombounds(bounds, height, offvalue=0, onvalue=255):
     return pxdata
 
 def combineboundims(boundim1, boundim2):
+    # TODO BUG If two combined images have overlapping pixels,
+    # pxfrombounds() repeats those, distorting the image and
+    # potentially exceeding the image dimensions.
+    # combineboundims() should properly combine the boundaries,
+    # by taking overlapping boundaries together, so that e.g.
+    # [(2,3),(2,3),(5,6),(6,7)] becomes: [(2,3),(5,7)]
     offsetx = min(boundim1.offset[0], boundim2.offset[0])
     offsety = min(boundim1.offset[1], boundim2.offset[1])
     width = max(im.offset[0] + im.width for im in (boundim1, boundim2)) - offsetx
