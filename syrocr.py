@@ -33,7 +33,7 @@ def command_getchars(args):
     json_ext = '_lines.json'
     txtlines_ext = '_textlines.json'
 
-    if os.path.isfile(tables_file):
+    if not args.reset and os.path.isfile(tables_file):
         with open(tables_file, 'r') as f:
             tables = json.load(f)
         for textsize in tables:
@@ -121,6 +121,10 @@ if __name__ == "__main__":
     p_getchars.add_argument(
         '-v', '--verbose',
         help='increase output verbosity',
+        action='store_true')
+    p_getchars.add_argument(
+        '-r', '--reset',
+        help='reset character tables',
         action='store_true')
     p_getchars.add_argument(
         'source_img_dir',
