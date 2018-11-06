@@ -240,6 +240,9 @@ def splitpixelgroups(boundims, c_height=6, minsplitwidth=20, mincharheight=4):
     """
     for boundim in boundims:
         if boundim.width < minsplitwidth:
+            # ignore tiny dots ## TODO ## maybe use separate variable??
+            if boundim.width < mincharheight and boundim.height < mincharheight:
+                continue
             connections = (False, False)
             yield (boundim, connections)
         else:
