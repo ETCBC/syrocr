@@ -71,6 +71,9 @@ def replacecolumnlines(im, lines, verbose=False):
         elif columnlines:
             break
 
+    if not columnlines:
+        return lines
+
     if verbose:
         print(f'Replacing lines {start} to {start+len(columnlines)}...')
 
