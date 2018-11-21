@@ -168,84 +168,132 @@ def get_textline(table, entries, basename, line_num,
     if corrections is None:
         corrections = []
 
-    stack = []
+    m_stack = [] # stack of potentially matching characters
+    l_stack = [] # loop stack
 
     for i, entry in enumerate(entries):
-        c_id, connections, keyoverride, box = entry
-        tr = table[c_id]['key']['tr']
-        script = table[c_id]['key']['script']
-        dist = table[c_id]['key']['dist']
+        l_stack.append(entry)
+        while l_stack:
+            entry = l_stack.pop(0)
+            c_id, connections, keyoverride, box = entry
+            tr = table[c_id]['key']['tr']
+            script = table[c_id]['key']['script']
+            dist = table[c_id]['key']['dist']
 
-        # discard entries with empty translation:
-        if tr == '':
-            continue
-        elif stack:
-            # if there are items on the stack, check combinations
-            pos = 0
-            tr1 = table[stack[pos][0]]['key']['tr']
-            if len(stack) == 1 and tr1[-1] == '+' and tr[0] == '+' and tr1[:-1] == tr[1:]:
-                # combine split characters such as 'T+', '+T'
-                new_tr = tr[1:]
-                new_connections = [stack[0][1][0], entry[1][1]]
-                new_box = combineboxes([stack[0][3], entry[3]])
-                yield (new_tr, new_connections, script, new_box)
-                stack.clear()
-                continue
-            else:
-                # copy combinations, to select matching combinations
-                matches = combinations
-                while len(stack) > pos:
-                    tr1 = table[stack[pos][0]]['key']['tr']
-                    matches = [c for c in matches if (len(c[0]) > pos and c[0][pos] == tr1)]
-                    pos += 1
-                if not matches:
-                    raise ValueError('Stack contains unmatched entry.')
-                elif [c for c in matches if (len(c[0]) > pos + 1 and c[0][pos]) == tr]:
-                    # there are matching combinations with more members than current,
-                    # so add current entry to stack:
-                    stack.append(entry)
-                    continue
-                else:
-                    matches = [c for c in matches if (len(c[0]) > pos and c[0][pos]) == tr]
-                    if not matches:
-                        # if no match, yield entries on stack, **but not** current entry;
-                        # and do **not** continue to next entry: first check if current
-                        # entry needs to be put on the stack
-                        for e in stack:
-                            new_tr = table[e[0]]['key']['tr']
-                            new_connections = e[1]
-                            new_box = e[3]
-                            yield (new_tr, new_connections, script, new_box)
-                        stack.clear()
-                    elif len(matches) > 1:
-                        raise ValueError('Too many matching combinations:', matches)
-                    else:
-                        # successful match in matches[0]!
-                        new_tr = matches[0][1] # get tr override from 2nd element of 'combinations' tuple
-                        new_connections = combineconnections([e[1] for e in stack + [entry]])
-                        new_box = combineboxes([e[3] for e in stack + [entry]])
-                        yield (new_tr, new_connections, script, new_box)
-                        stack.clear()
-                        continue
-
-        if tr[-1] == '+' or tr in (c[0][0] for c in combinations):
-            stack.append(entry)
-        else:
-            # TODO this could be optimized by filtering corrections at page and line level
-            for c, override in corrections:
-                if basename == c[0] and line_num == c[1] and i == c[2] and c_id == c[3]:
-                    tr = override
-                    break
+            # discard entries with empty translation:
             if tr == '':
                 continue
-            yield (tr, connections, script, box)
+            elif m_stack:
+                # if there are items on the m_stack, check combinations
+                pos = 0
+                tr1 = table[m_stack[pos][0]]['key']['tr']
+                if len(m_stack) == 1 and tr1[-1] == '+' and tr[0] == '+' and tr1[:-1] == tr[1:]:
+                    # combine split characters such as 'T+', '+T'
+                    new_tr = tr[1:]
+                    new_connections = [m_stack[0][1][0], entry[1][1]]
+                    new_box = combineboxes([m_stack[0][3], entry[3]])
+                    yield (new_tr, new_connections, script, new_box)
+                    m_stack.clear()
+                    continue
+                else:
+                    # copy combinations, to select matching combinations
+                    matches = combinations
+                    while len(m_stack) > pos:
+                        tr1 = table[m_stack[pos][0]]['key']['tr']
+                        matches = [c for c in matches if (len(c[0]) > pos and c[0][pos] == tr1)]
+                        pos += 1
+                    if not matches:
+                        raise ValueError('Stack contains unmatched entry.')
+                    elif [c for c in matches if (len(c[0]) > pos + 1 and c[0][pos]) == tr]:
+                        # there are matching combinations with more members than current,
+                        # so add current entry to m_stack:
+                        m_stack.append(entry)
+                        continue
+                    else:
+                        matches = [c for c in matches if (len(c[0]) > pos and c[0][pos]) == tr]
+                        if not matches:
+                            # print('BLAA', len(m_stack), m_stack)
+                            # first, put current entry back on l_stack
+                            l_stack.insert(0, entry)
+                            # then, go back on the m_stack to find a shorter match if there is one
+                            while m_stack:
+                                # print('stack length:', len(m_stack), m_stack)
+                                trs = [table[e[0]]['key']['tr'] for e in m_stack]
+                                matches = [c for c in combinations if list(c[0]) == trs]
+                                if len(matches) == 1:
+                                    new_tr = matches[0][1] # get tr override from 2nd element of 'combinations' tuple
+                                    new_connections = combineconnections([e[1] for e in m_stack])
+                                    new_box = combineboxes([e[3] for e in m_stack])
+                                    yield (new_tr, new_connections, script, new_box)
+                                    m_stack.clear()
+                                    continue
+                                elif len(matches) > 1:
+                                    raise ValueError('Too many matching combinations:', matches)
+                                elif len(m_stack) > 1:
+                                    # put last item back on l_stack
+                                    l_stack.insert(0, m_stack.pop())
+                                    continue
+                                else:
+                                    # if one entry left on stack (the first
+                                    # one, which started matching a
+                                    # combination) -- break out of the loop
+                                    break
 
-    for e in stack:
+                            # if only one item is left on m_stack, yield it
+                            # so we won't end in infinite loop
+                            for e in m_stack:
+                                new_tr = table[e[0]]['key']['tr']
+                                for c, override in corrections:
+                                    if basename == c[0] and line_num == c[1] and i - len(l_stack) == c[2] and e[0] == c[3]:
+                                        new_tr = override
+                                        break
+                                if new_tr == '':
+                                    continue
+                                # print('inEND', m_stack)
+                                new_connections = e[1]
+                                new_box = e[3]
+                                yield (new_tr, new_connections, script, new_box)
+                            m_stack.clear()
+                            continue
+
+                            # # if no match, yield entries on m_stack, **but not** current entry;
+                            # # and do **not** continue to next entry: first check if current
+                            # # entry needs to be put on the m_stack
+                            # for e in m_stack:
+                            #     new_tr = table[e[0]]['key']['tr']
+                            #     new_connections = e[1]
+                            #     new_box = e[3]
+                            #     yield (new_tr, new_connections, script, new_box)
+                            # m_stack.clear()
+                        elif len(matches) > 1:
+                            raise ValueError('Too many matching combinations:', matches)
+                        else:
+                            # successful match in matches[0]!
+                            new_tr = matches[0][1] # get tr override from 2nd element of 'combinations' tuple
+                            new_connections = combineconnections([e[1] for e in m_stack + [entry]])
+                            new_box = combineboxes([e[3] for e in m_stack + [entry]])
+                            yield (new_tr, new_connections, script, new_box)
+                            m_stack.clear()
+                            continue
+
+            if tr[-1] == '+' or tr in (c[0][0] for c in combinations):
+                m_stack.append(entry)
+            else:
+                # TODO this could be optimized by filtering corrections at page and line level
+                for c, override in corrections:
+                    if basename == c[0] and line_num == c[1] and i - len(l_stack) == c[2] and c_id == c[3]:
+                        tr = override
+                        break
+                if tr == '':
+                    continue
+                yield (tr, connections, script, box)
+
+    for e in m_stack:
         c_id, connections, keyoverride, box = e
         tr = table[c_id]['key']['tr']
         script = table[c_id]['key']['script']
         yield (tr, connections, script, box)
-    stack.clear()
+    m_stack.clear()
 
 def combineboxes(boxes):
     """Combine boxes
