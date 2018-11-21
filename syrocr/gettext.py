@@ -502,11 +502,10 @@ def remove_spaces(chars):
         tr = tr.replace(' ', '')
         yield (tr, connections, script, box)
 
-def remove_interpunction(chars, interpunction=('=:','=.','^.','o','*')):
-    # interpunction is assumed to be always by itself
+def remove_interpunction(chars, interpunction=('=:','=.', '=/', '=\\','^\\','^.','o','*')):
     for tr, connections, script, box in chars:
-        if tr in interpunction:
-            tr = ''
+        for symbol in interpunction:
+            tr = tr.replace(symbol, '')
         yield (tr, connections, script, box)
 
 def remove_diacritics(chars, diacritics='#^"'):
