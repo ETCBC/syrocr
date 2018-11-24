@@ -95,7 +95,7 @@ def command_gettext(args):
             diacr=args.no_diacritics,
             inscr=args.no_inscriptions,
             meta=args.meta,
-            #spaces_file=args.spaces_file
+            spaces_file=args.spaces_file,
             combinations=combinations,
             corrections=corrections):
         if args.no_spaces:
