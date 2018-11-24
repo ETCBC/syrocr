@@ -4,6 +4,7 @@ import argparse, json, sys, os.path
 from syrocr.getlines import getlines, drawboxes
 from syrocr.getchars import scanpage
 from syrocr.images import AvgIm
+from syrocr.gettext import verses
 
 def command_getlines(args):
     source_image = args.source_image
@@ -76,6 +77,38 @@ def get_src_files(src_dir, src_ext='.tif'):
             if dir_entry.is_file() and dir_entry.name.endswith(src_ext):
                 yield dir_entry
 
+def command_gettext(args):
+    if args.corrections_file:
+        import yaml
+        with open(args.corrections_file) as f:
+            cf = yaml.safe_load(f)
+        combinations = cf['combinations']
+        corrections = cf['corrections']
+    else:
+        combinations = None
+        corrections = None
+    chapter = 0
+    for tag, verse in verses(
+            args.json_textlines_dir,
+            args.json_tables_file,
+            interp=args.no_interpunction,
+            diacr=args.no_diacritics,
+            inscr=args.no_inscriptions,
+            meta=args.meta,
+            #spaces_file=args.spaces_file
+            combinations=combinations,
+            corrections=corrections):
+        v = tag.strip('()')
+        if ' ' in v:
+            if chapter > 0:
+                print()
+            ch, v = v.split()
+            chapter += 1
+            print(f'@Lv{chapter}')
+        if args.no_spaces:
+            verse = ''.join(verse.split())
+        print(f' {v:>2}', verse)
+
 if __name__ == "__main__":
     # initialize main argument parser
     parser = argparse.ArgumentParser(
@@ -136,6 +169,50 @@ if __name__ == "__main__":
         'json_tables_file',
         help='Filename of json tables file')
     p_getchars.set_defaults(func=command_getchars)
+
+    # initialize subparser p_gettext
+    p_gettext = subparsers.add_parser(
+        'gettext',
+        help='Generate text from json textline files')
+    p_gettext.add_argument(
+        '-v', '--verbose',
+        help='increase output verbosity',
+        action='store_true')
+    p_gettext.add_argument(
+        'json_textlines_dir',
+        help='Directory with json lines files')
+    p_gettext.add_argument(
+        'json_tables_file',
+        help='Filename of json tables file')
+    p_gettext.add_argument(
+        '-cf', '--corrections_file',
+        help='Filename of corrections python script file',
+        metavar='FILENAME')
+    p_gettext.add_argument(
+        '-sf', '--spaces_file',
+        help='Filename of file with consonants and spaces',
+        metavar='FILENAME')
+    p_gettext.add_argument(
+        '-N', '--no-inscriptions',
+        help='If set, remove inscriptions from output',
+        action='store_false')
+    p_gettext.add_argument(
+        '-I', '--no-interpunction',
+        help='If set, remove interpunction from output',
+        action='store_false')
+    p_gettext.add_argument(
+        '-D', '--no-diacritics',
+        help='If set, remove diacritics from output',
+        action='store_false')
+    p_gettext.add_argument(
+        '-S', '--no-spaces',
+        help='If set, remove spaces from output',
+        action='store_true')
+    p_gettext.add_argument(
+        '--meta',
+        help='If set, include meta characters in output',
+        action='store_true')
+    p_gettext.set_defaults(func=command_gettext)
 
     # parse arguments
     args = parser.parse_args()
