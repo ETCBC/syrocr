@@ -107,7 +107,7 @@ def command_gettext(args):
                     print()
                 ch, v = v.split()
                 chapter += 1
-                print(f'@Lv{chapter}')
+                print(f'@{args.pil_book}{chapter}')
             print(f' {v:>2}', verse)
         else:
             print(f'{tag}\t{verse}')
@@ -216,9 +216,13 @@ if __name__ == "__main__":
         help='If set, include meta characters in output',
         action='store_true')
     p_gettext.add_argument(
-        '--pil-style',
+        '-ps', '--pil-style',
         help='Output verses in PIL style',
         action='store_true')
+    p_gettext.add_argument(
+        '-pb', '--pil-book',
+        help='Book abbreviation for chapter label',
+        required='--pil-style' in sys.argv)
     p_gettext.set_defaults(func=command_gettext)
 
     # parse arguments
