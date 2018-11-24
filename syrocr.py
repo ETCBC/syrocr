@@ -98,16 +98,19 @@ def command_gettext(args):
             #spaces_file=args.spaces_file
             combinations=combinations,
             corrections=corrections):
-        v = tag.strip('()')
-        if ' ' in v:
-            if chapter > 0:
-                print()
-            ch, v = v.split()
-            chapter += 1
-            print(f'@Lv{chapter}')
         if args.no_spaces:
             verse = ''.join(verse.split())
-        print(f' {v:>2}', verse)
+        if args.pil_style:
+            v = tag.strip('()')
+            if ' ' in v:
+                if chapter > 0:
+                    print()
+                ch, v = v.split()
+                chapter += 1
+                print(f'@Lv{chapter}')
+            print(f' {v:>2}', verse)
+        else:
+            print(f'{tag}\t{verse}')
 
 if __name__ == "__main__":
     # initialize main argument parser
@@ -209,8 +212,12 @@ if __name__ == "__main__":
         help='If set, remove spaces from output',
         action='store_true')
     p_gettext.add_argument(
-        '--meta',
+        '-M', '--meta',
         help='If set, include meta characters in output',
+        action='store_true')
+    p_gettext.add_argument(
+        '--pil-style',
+        help='Output verses in PIL style',
         action='store_true')
     p_gettext.set_defaults(func=command_gettext)
 
