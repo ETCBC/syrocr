@@ -24,7 +24,8 @@ def chars_to_verses(chars, inscr=True):
     inscr_txt = []
     for tr, connections, script, box in chars:
         if tr == '(':
-            yield join_verse(tag, text)
+            if tag or text:
+                yield join_verse(tag, text)
             tag.clear()
             text.clear()
             tag_start = True
