@@ -88,6 +88,7 @@ def get_text(json_textlines_dir, tables_filename,
                 textline['num'], combinations, corrections)
 
             # SOME FIXES TODO MUST BE FIXED IN OTHER WAYS
+            chars = split_brackets(chars)
             chars = flip_yudh_sade(chars)
 
             # spaces must be added before reversing the line,
@@ -446,6 +447,22 @@ def reverse_line(chars, brackets='<>()'):
         if tr in brackets and len(tr) == 1:
             tr = flip_brackets(tr, brackets)
         yield (tr, connections, script, box)
+
+def split_brackets(chars):
+    """Splits non-Syriac multi-character transcriptions.
+
+    Specifically for Lv.11:5 where '5' and ')' are connected,
+    which upsets the verse splitting, which depends on
+    unconnected brackets.
+    """
+    #TODO also split the box evenly over number of characters?
+    for char in chars:
+        tr, connections, script, box = char
+        if script != '' and len(tr) > 1:
+            for c in tr:
+                yield (c, connections, script, box)
+        else:
+            yield char
 
 def flip_yudh_sade(chars):
     """Flips yudh and Sade when in wrong order
