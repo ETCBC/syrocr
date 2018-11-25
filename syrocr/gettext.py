@@ -455,24 +455,19 @@ def flip_yudh_sade(chars):
     the 'center' of the character for ordering.
     """
     stack = None
-    for tr, connections, script, box in chars:
-        # if stack is not None and tr and tr[0] == 'y' and stack[3][2] > box[2]:
-        # TODO CHECK: removed test tr[0] == 'y' since it turned out to
-        # be also relevant for dots '=.', maybe others?
-        if stack is not None and tr and stack[3][2] > box[2]:
-            yield (tr, connections, script, box)
-            yield stack
-            stack = None
-        elif stack is not None:
-            yield stack
-            stack = None
-            yield (tr, connections, script, box)
-        elif tr and tr[0] == 'S':
-            stack = (tr, connections, script, box)
+    for char in chars:
+        tr, connections, script, box = char
+        if stack is None:
+            stack = char
+            continue
+        elif stack[0] and stack[0][0] == 'S' and stack[3][2] > box[2]:
+            # if previous char is 'S', which extends to right beyond
+            # current character: yield char and keep stack
+            yield char
         else:
-            yield (tr, connections, script, box)
-    if stack:
-        yield stack
+            yield stack
+            stack = char
+    yield stack
 
 # def get_text_chars(json_textlines_dir, tables_filename,
 #         combinations=None, corrections=None, json_texline_ext='_textlines.json',
