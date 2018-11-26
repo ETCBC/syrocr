@@ -98,6 +98,9 @@ def command_gettext(args):
             spaces_file=args.spaces_file,
             combinations=combinations,
             corrections=corrections):
+        if not (verse or tag):
+            # skip empty (first) verses
+            continue
         if args.no_spaces:
             verse = ''.join(verse.split())
         if args.pil_style:
