@@ -347,7 +347,8 @@ def add_spaces(chars, space_dist=15, final_chars='KMN', diacr='#^"'):
     for tr, connections, script, box in chars:
         c_left, c_right = connections
         x1, y1, x2, y2 = box
-        if tr.rstrip(diacr)[-1] in final_chars:
+        # add space to tr to prevent empty rstrip() result, causing IndexError
+        if (' ' + tr.rstrip(diacr))[-1] in final_chars:
             yield space
             prev_end = None
             tr = ''.join([c.lower() if c in final_chars else c for c in tr])
