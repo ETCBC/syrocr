@@ -485,7 +485,8 @@ def flip_yudh_sade(chars):
         else:
             yield stack
             stack = char
-    yield stack
+    if stack is not None:
+        yield stack
 
 # def get_text_chars(json_textlines_dir, tables_filename,
 #         combinations=None, corrections=None, json_texline_ext='_textlines.json',
