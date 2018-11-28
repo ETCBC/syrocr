@@ -1,6 +1,15 @@
 import os
 import json
 
+class Char:
+    def __init__(self, tr, connections, script, box, dist):
+        self.tr = tr
+        self.connections = connections
+        self.script = script
+        self.box = box
+        self.dist = dist
+
+
 def verses(*args, inscr=True, spaces_file=None, **kwargs):
     """Get text verse tuples"""
     chars = get_text(*args, **kwargs)
@@ -65,6 +74,11 @@ def get_text(json_textlines_dir, tables_filename,
     Yields:
         pass
     """
+    if combinations is None:
+        combinations = []
+    if corrections is None:
+        corrections = []
+
     with open(tables_filename, 'r') as f:
         tables = json.load(f)
     # TODO for now we only look at line type 'text',
@@ -79,14 +93,19 @@ def get_text(json_textlines_dir, tables_filename,
         basename = os.path.basename(filename)[:-len(json_texline_ext)]
         with open(filename, 'r') as f:
             textlines = json.load(f)
+        file_corrections = [c for c in corrections if c[0][0] == basename]
 
         for textline in textlines:
             # TODO for now we only look at line type 'text',
             # there section 'main'. This should be set in an argument.
             if textline['type'] != 'text':
                 continue
+
+            line_corrections = [c for c in file_corrections
+                                if c[0][1] == textline['num']]
+
             chars = get_textline(table, textline['main'], basename,
-                textline['num'], combinations, corrections)
+                textline['num'], combinations, line_corrections)
 
             # SOME FIXES TODO MUST BE FIXED IN OTHER WAYS
             chars = split_brackets(chars)
@@ -174,69 +193,86 @@ def get_textline(table, entries, basename, line_num,
     l_stack = [] # loop stack
 
     for i, entry in enumerate(entries):
-        l_stack.append(entry)
+        c_id, connections, keyoverride, box = entry
+        tr = table[c_id]['key']['tr'] if keyoverride is None else keyoverride
+        dist = table[c_id]['key']['dist']
+        script = table[c_id]['key']['script']
+
+        # check if current char is in corrections list
+        for correction in [c for c in corrections
+                            if c[0][0] == basename
+                            and c[0][1] == line_num
+                            and c[0][2] == i
+                            and c[0][3] == c_id]:
+            tr = correction[1]
+
+        l_stack.append(Char(tr, connections, script, box, dist))
+
         while l_stack:
-            entry = l_stack.pop(0)
-            c_id, connections, keyoverride, box = entry
-            tr = table[c_id]['key']['tr']
-            script = table[c_id]['key']['script']
-            dist = table[c_id]['key']['dist']
+            char = l_stack.pop(0)
 
             # discard entries with empty translation:
-            if tr == '':
+            if char.tr == '':
                 continue
             elif m_stack:
                 # if there are items on the m_stack, check combinations
-                pos = 0
-                tr1 = table[m_stack[pos][0]]['key']['tr']
-                if len(m_stack) == 1 and tr1[-1] == '+' and tr[0] == '+' and tr1[:-1] == tr[1:]:
+                if (len(m_stack) == 1
+                        and m_stack[0].tr.endswith('+')
+                        and char.tr.startswith('+')
+                        and m_stack[0].tr[:-1] == char.tr[1:]):
                     # combine split characters such as 'T+', '+T'
-                    new_tr = tr[1:]
-                    new_connections = [m_stack[0][1][0], entry[1][1]]
-                    new_box = combineboxes([m_stack[0][3], entry[3]])
-                    yield (new_tr, new_connections, script, new_box)
+                    char.tr = char.tr[1:]
+                    char.connections = [m_stack[0].connections[0], char.connections[1]]
+                    char.box = combineboxes([m_stack[0].box, char.box])
+                    yield (char.tr, char.connections, char.script, char.box)
                     m_stack.clear()
                     continue
                 else:
+                    pos = 0
                     # copy combinations, to select matching combinations
                     matches = combinations
                     while len(m_stack) > pos:
-                        tr1 = table[m_stack[pos][0]]['key']['tr']
-                        matches = [c for c in matches if (len(c[0]) > pos and c[0][pos] == tr1)]
+                        matches = [c for c in matches
+                                   if (len(c[0]) > pos
+                                   and c[0][pos] == m_stack[pos].tr)] # tr1)]
                         pos += 1
                     if not matches:
-                        raise ValueError('Stack contains unmatched entry.')
-                    elif [c for c in matches if (len(c[0]) > pos + 1 and c[0][pos]) == tr]:
+                        raise ValueError('Stack contains unmatched char.')
+                    elif [c for c in matches
+                            if (len(c[0]) > pos + 1
+                            and c[0][pos]) == char.tr]:
                         # there are matching combinations with more members than current,
-                        # so add current entry to m_stack:
-                        m_stack.append(entry)
+                        # so add current char to m_stack:
+                        m_stack.append(char)
                         continue
                     else:
-                        matches = [c for c in matches if (len(c[0]) > pos and c[0][pos]) == tr]
+                        matches = [c for c in matches
+                                    if (len(c[0]) > pos
+                                    and c[0][pos]) == char.tr]
                         if not matches:
-                            # print('BLAA', len(m_stack), m_stack)
-                            # first, put current entry back on l_stack
-                            l_stack.insert(0, entry)
+                            # first, put current char back on front of l_stack
+                            l_stack.insert(0, char)
                             # then, go back on the m_stack to find a shorter match if there is one
                             while m_stack:
-                                # print('stack length:', len(m_stack), m_stack)
-                                trs = [table[e[0]]['key']['tr'] for e in m_stack]
+                                trs = [e.tr for e in m_stack]
                                 matches = [c for c in combinations if list(c[0]) == trs]
                                 if len(matches) == 1:
-                                    new_tr = matches[0][1] # get tr override from 2nd element of 'combinations' tuple
-                                    new_connections = combineconnections([e[1] for e in m_stack])
-                                    new_box = combineboxes([e[3] for e in m_stack])
-                                    yield (new_tr, new_connections, script, new_box)
+                                    # if one match, yield resulting char
+                                    tr = matches[0][1] # get tr override from 2nd element of 'combinations' tuple
+                                    connections = combineconnections([e.connections for e in m_stack])
+                                    box = combineboxes([e.box for e in m_stack])
+                                    script = m_stack[-1].script
+                                    yield (tr, connections, script, box)
                                     m_stack.clear()
                                     continue
                                 elif len(matches) > 1:
                                     raise ValueError('Too many matching combinations:', matches)
                                 elif len(m_stack) > 1:
-                                    # put last item back on l_stack
+                                    # put last item back on front of l_stack
                                     l_stack.insert(0, m_stack.pop())
                                     continue
                                 else:
-                                    # if one entry left on stack (the first
+                                    # if one char left on stack (the first
                                     # one, which started matching a
                                     # combination) -- break out of the loop
                                     break
@@ -244,57 +280,29 @@ def get_textline(table, entries, basename, line_num,
                             # if only one item is left on m_stack, yield it
                             # so we won't end in infinite loop
                             for e in m_stack:
-                                new_tr = table[e[0]]['key']['tr']
-                                for c, override in corrections:
-                                    if basename == c[0] and line_num == c[1] and i - len(l_stack) == c[2] and e[0] == c[3]:
-                                        new_tr = override
-                                        break
-                                if new_tr == '':
-                                    continue
-                                # print('inEND', m_stack)
-                                new_connections = e[1]
-                                new_box = e[3]
-                                yield (new_tr, new_connections, script, new_box)
+                                yield (e.tr, e.connections, e.script, e.box)
                             m_stack.clear()
                             continue
 
-                            # # if no match, yield entries on m_stack, **but not** current entry;
-                            # # and do **not** continue to next entry: first check if current
-                            # # entry needs to be put on the m_stack
-                            # for e in m_stack:
-                            #     new_tr = table[e[0]]['key']['tr']
-                            #     new_connections = e[1]
-                            #     new_box = e[3]
-                            #     yield (new_tr, new_connections, script, new_box)
-                            # m_stack.clear()
                         elif len(matches) > 1:
                             raise ValueError('Too many matching combinations:', matches)
                         else:
                             # successful match in matches[0]!
-                            new_tr = matches[0][1] # get tr override from 2nd element of 'combinations' tuple
-                            new_connections = combineconnections([e[1] for e in m_stack + [entry]])
-                            new_box = combineboxes([e[3] for e in m_stack + [entry]])
-                            yield (new_tr, new_connections, script, new_box)
+                            tr = matches[0][1] # get tr override from 2nd element of 'combinations' tuple
+                            connections = combineconnections([e.connections for e in m_stack + [char]])
+                            box = combineboxes([e.box for e in m_stack + [char]])
+                            script = char.script
+                            yield (tr, connections, script, box)
                             m_stack.clear()
                             continue
 
-            if tr[-1] == '+' or tr in (c[0][0] for c in combinations):
-                m_stack.append(entry)
+            if char.tr.endswith('+') or char.tr in (c[0][0] for c in combinations):
+                m_stack.append(char)
             else:
-                # TODO this could be optimized by filtering corrections at page and line level
-                for c, override in corrections:
-                    if basename == c[0] and line_num == c[1] and i - len(l_stack) == c[2] and c_id == c[3]:
-                        tr = override
-                        break
-                if tr == '':
-                    continue
-                yield (tr, connections, script, box)
+                yield (char.tr, char.connections, char.script, char.box)
 
     for e in m_stack:
-        c_id, connections, keyoverride, box = e
-        tr = table[c_id]['key']['tr']
-        script = table[c_id]['key']['script']
-        yield (tr, connections, script, box)
+        yield (e.tr, e.connections, e.script, e.box)
     m_stack.clear()
 
 def combineboxes(boxes):
