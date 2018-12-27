@@ -461,7 +461,10 @@ def split_brackets(chars):
     """
     #TODO also split the box evenly over number of characters?
     for char in chars:
-        if char.script != '' and len(char.tr) > 1:
+        if char.script != '' and len(char.tr) > 1 and not char.tr.isdigit():
+            # TODO check: last test is because in Proverbs 31:28, the
+            # combined number '28' was rendered '88', although char.tr == '28'
+            # UNFORTUNATELY this leaves similar roman numbers messed up
             for c in char.tr:
                 char.tr = c
                 yield char
