@@ -2,7 +2,7 @@ import os
 import json
 
 
-META = ('!', '|', '-', '{', '}')
+META = ('+', '|', '-', '{', '}')
 DIACRITICS = ('#,', '#"', '#!', '#_', '^,', '^!', '^_', '"', '#', '^', '~')
 INTERPUNCTION = ('#.', '#:', '#\\', # below the baseline
     '=.', '=/', '=:', '=\\', # on the baseline
@@ -119,6 +119,7 @@ def get_text(json_textlines_dir, tables_filename,
                 textline['num'], combinations, line_corrections)
 
             # SOME FIXES TODO MUST BE FIXED IN OTHER WAYS
+            chars = replace_dagger(chars) # emergency fix, see docstring
             chars = split_brackets(chars)
             chars = flip_yudh_sade(chars)
 
@@ -474,6 +475,26 @@ def reverse_line(chars, brackets=BRACKETS):
                 yield stack.pop()
         if char.tr in brackets and len(char.tr) == 1:
             char.tr = flip_brackets(char.tr, brackets)
+        yield char
+
+def replace_dagger(chars):
+    """Replaces dagger symbol '!' with dagger symbol '+'
+
+    Originally, the dagger meta symbol was encoded with an exclamation mark.
+    However, later texts use the exclamation mark as part of combined
+    diacritics symbols (e.g. '^!'). So it is replaced with the plus symbol,
+    which is otherwise only used in early stages of the OCR process to
+    reconnect broken characters, and should not be present in the final
+    text and not interfere with anything, especially since the dagger symbol
+    always appears by itself surrounded by spaces, whereas the reconnecting
+    plus is always connected to the broken character.
+
+    TODO: replace the dagger exclamation mark in the tables files,
+    so this temporary fix can be removed
+    """
+    for char in chars:
+        if char.tr == '!':
+            char.tr = '+'
         yield char
 
 def split_brackets(chars):
