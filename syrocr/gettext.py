@@ -1,6 +1,12 @@
 import os
 import json
 
+META = '!|-{}'
+DIACRITICS = '#^"'
+INTERPUNCTION = ('=:','=.', '=/', '=\\','^\\','^.', '#.','o','*')
+LETTERS = list('\'bgdhwzHTyklmns`pSqr$t')
+BRACKETS = '<>()'
+
 class Char:
     def __init__(self, tr, connections, script, box, dist):
         self.tr = tr
@@ -367,10 +373,8 @@ def add_spaces(chars, space_dist=15, finals='KMN', diacr='#^"'):
             prev_end -= 20
         yield char
 
-def fix_spaces(chars, spaces_file):
+def fix_spaces(chars, spaces_file, letters=LETTERS, interpunction=INTERPUNCTION):
     space = Char(' ', None, None, None, None)
-    letters = list('\'bgdhwzHTyklmns`pSqr$t')
-    interpunction = ('*', 'o', '=.', '=:', '^.')
 
     with open(spaces_file, 'r') as f:
         spaces_lines = f.readlines()
@@ -417,11 +421,11 @@ def fix_spaces(chars, spaces_file):
                         raise ValueError(msg)
             yield char
 
-def flip_brackets(bracket, brackets='<>()'):
+def flip_brackets(bracket, brackets=BRACKETS):
     pos = brackets.find(bracket)
     return brackets[pos - (pos%2 * 2 - 1)] # -1 if odd pos, +1 if even
 
-def reverse_line(chars, brackets='<>()'):
+def reverse_line(chars, brackets=BRACKETS):
     """Reverses a line of RTL text to read from LTR
 
     Reverses Syriac text, but not inline other text.
@@ -493,7 +497,7 @@ def flip_yudh_sade(chars):
     if stack is not None:
         yield stack
 
-def remove_meta(chars, meta='!|-'):
+def remove_meta(chars, meta=META):
     for char in chars:
         char.tr = ''.join([c for c in char.tr if c not in meta])
         yield char
@@ -503,13 +507,13 @@ def remove_spaces(chars):
         char.tr = char.tr.replace(' ', '')
         yield char
 
-def remove_interpunction(chars, interpunction=('=:','=.', '=/', '=\\','^\\','^.','o','*')):
+def remove_interpunction(chars, interpunction=INTERPUNCTION):
     for char in chars:
         for symbol in interpunction:
             char.tr = char.tr.replace(symbol, '')
         yield char
 
-def remove_diacritics(chars, diacritics='#^"'):
+def remove_diacritics(chars, diacritics=DIACRITICS):
     for char in chars:
         char.tr = ''.join([c for c in char.tr if c not in diacritics])
         yield char
