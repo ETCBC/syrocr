@@ -1,11 +1,17 @@
 import os
 import json
 
-META = '!|-{}'
-DIACRITICS = ('^!','#','^','"')
-INTERPUNCTION = ('=:','=.', '=/', '=\\','^\\','^.', '#.','o','*')
-LETTERS = list('\'bgdhwzHTyklmns`pSqr$t')
+
+META = ('!', '|', '-', '{', '}')
+DIACRITICS = ('#,', '#"', '#!', '#_', '^,', '^!', '^_', '"', '#', '^', '~')
+INTERPUNCTION = ('#.', '#:', '#\\', # below the baseline
+    '=.', '=/', '=:', '=\\', # on the baseline
+    '^.', '^"', '^:', '^\\', # above the baseline
+    '*', '.', '@', '_', 'o') # pericope markers
+LETTERS = ("'", 'b', 'g', 'd', 'h', 'w', 'z', 'H', 'T', 'y', 'k',
+    'l', 'm', 'n', 's', '`', 'p', 'S', 'q', 'r', '$', 't')
 BRACKETS = '<>()'
+
 
 class Char:
     def __init__(self, tr, connections, script, box, dist):
