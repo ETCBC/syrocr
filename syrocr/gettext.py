@@ -2,7 +2,7 @@ import os
 import json
 
 META = '!|-{}'
-DIACRITICS = '#^"'
+DIACRITICS = ('^!','#','^','"')
 INTERPUNCTION = ('=:','=.', '=/', '=\\','^\\','^.', '#.','o','*')
 LETTERS = list('\'bgdhwzHTyklmns`pSqr$t')
 BRACKETS = '<>()'
@@ -343,7 +343,7 @@ def combineconnections(connections):
     """
     return tuple(any(x) for x in zip(*connections))
 
-def add_spaces(chars, space_dist=15, finals='KMN', diacr='#^"'):
+def add_spaces(chars, space_dist=15, finals='KMN', diacritics=DIACRITICS):
     """
 
     finals logic assumes two things:
@@ -356,10 +356,11 @@ def add_spaces(chars, space_dist=15, finals='KMN', diacr='#^"'):
     for char in chars:
         c_left, c_right = char.connections
         x1, y1, x2, y2 = char.box
-        if any(char.tr.rstrip(diacr).endswith(f) for f in finals):
-            yield space
+        tr = rstrip_diacr(char.tr, diacritics)
+        if tr and tr[-1] in finals:
+            char.tr = tr[:-1] + tr[-1].lower() + char.tr[len(tr):]
             prev_end = None
-            char.tr = ''.join([c.lower() if c in finals else c for c in char.tr])
+            yield space
         elif not c_left and prev_end is not None and x1 - prev_end >= space_dist:
             yield space
             prev_end = x2 if not c_right else None
@@ -372,6 +373,19 @@ def add_spaces(chars, space_dist=15, finals='KMN', diacr='#^"'):
         elif prev_end and char.tr.startswith('g'):
             prev_end -= 20
         yield char
+
+def rstrip_diacr(s, diacritics=DIACRITICS):
+    stripped = False
+    while True:
+        for d in diacritics:
+            if s.endswith(d):
+                s = s[:-len(d)]
+                stripped = True
+                break
+        if not stripped:
+            break
+        stripped = False
+    return s
 
 def fix_spaces(chars, spaces_file, letters=LETTERS, interpunction=INTERPUNCTION):
     space = Char(' ', None, None, None, None)
@@ -515,5 +529,6 @@ def remove_interpunction(chars, interpunction=INTERPUNCTION):
 
 def remove_diacritics(chars, diacritics=DIACRITICS):
     for char in chars:
-        char.tr = ''.join([c for c in char.tr if c not in diacritics])
+        for symbol in diacritics:
+            char.tr = char.tr.replace(symbol, '')
         yield char
