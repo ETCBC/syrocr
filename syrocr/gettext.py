@@ -120,6 +120,7 @@ def get_text(json_textlines_dir, tables_filename,
 
             # SOME FIXES TODO MUST BE FIXED IN OTHER WAYS
             chars = replace_dagger(chars) # emergency fix, see docstring
+            chars = replace_brackets(chars) # another emergency fix
             chars = split_brackets(chars)
             chars = flip_yudh_sade(chars)
 
@@ -496,6 +497,30 @@ def replace_dagger(chars):
         if char.tr == '!':
             char.tr = '+'
         yield char
+
+def replace_brackets(chars):
+    """Replaces round brackets with angle brackets
+
+    When round and angle brackets are so similar that they are
+    not recognized as different characters by syrocr, the brackets
+    surrounding Syriac text should be replaced by angle brackets.
+    Round brackets always contain verse/chapter numbers in roman
+    letters or digits, so brackets around Syriac characters must
+    be angle brackets indicating in/subscriptions.
+    This is relevant for Jeremiah/VTS 3.2
+    """
+    prev_char = None
+    for char in chars:
+        if prev_char is None:
+            prev_char = char
+            continue
+        if prev_char.tr == '(' and char.script == '':
+            prev_char.tr = '<'
+        elif char.tr == ')' and prev_char.script == '':
+            char.tr = '>'
+        yield prev_char
+        prev_char = char
+    yield prev_char
 
 def split_brackets(chars):
     """Splits non-Syriac multi-character transcriptions.
