@@ -351,7 +351,7 @@ def combineconnections(connections):
     """
     return tuple(any(x) for x in zip(*connections))
 
-def add_spaces(chars, space_dist=15, finals='KMN', diacritics=DIACRITICS):
+def add_spaces(chars, space_dist=10, finals='KMN', diacritics=DIACRITICS):
     """
 
     finals logic assumes two things:
