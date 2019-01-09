@@ -561,8 +561,8 @@ def flip_yudh_sade(chars):
 
 def remove_meta(chars, meta=META):
     for char in chars:
-        char.tr = ''.join([c for c in char.tr if c not in meta])
-        yield char
+        if char.tr not in meta:
+            yield char
 
 def remove_spaces(chars):
     for char in chars:
