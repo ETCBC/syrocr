@@ -3,7 +3,8 @@ from .images import Im, getboundaries
 # TODO make consistent use of constants, or not at all
 MAXLINEHEIGHT = 1/4 # If lineheight is higher than 1/4 inch (75px@300dpi),
                     # check if overlapping lines must be split
-LINEDIST_TEXT = 1/4 # standard line spacing is 1/4 inch (75px@300dpi)
+# LINEDIST_TEXT = 1/4 # standard line spacing is 1/4 inch (75px@300dpi)
+LINEDIST_TEXT = 1/3.75 # standard line spacing is 1/3.75 inch (80px@300dpi) #TODO should be argument
 LINEDIST_APP = 2/11 # 2/11 inch (ca. 54px@300dpi, 4.6181818 mm)
 
 
@@ -340,6 +341,8 @@ class Line:
 
         # TODO : add option no_header, to set first line on
         # some pages to 'text' instead of 'header'
+        elementwidths = [x2-x1 for x1,y1,x2,y2 in self.elements]
+        # print(sum(elementwidths)//len(elementwidths))
 
         if lines:
             l_m, r_m = findmaincolumn(lines+[self])    # left, right margin
@@ -357,7 +360,7 @@ class Line:
             linetype = 'header' if not no_header else 'text' # no_header is True
         elif prevtype == 'header':  # line after 'header' is always 'text'
             linetype = 'text'
-        elif (l > (w-inch)/2+l_m and r < (w+inch)/2+l_m and # within centermost inch
+        elif (l > (w-inch/2)/2+l_m and r < (w+inch/2)/2+l_m and # within centermost HALF inch
               offcenter < inch//5):                        # and centered
             linetype = 'pagenr'
         elif prevtype == 'pagenr' and l > r_m-inch:
@@ -373,8 +376,10 @@ class Line:
         elif (abs(linedist_app-linedist) < inch/75 and  # 4px@300dpi
               prevtype in ('apparatus1', 'apparatus2')):
             linetype = prevtype
-        elif (prevtype == 'text' and abs(linedist_text-linedist) > inch/75 and
-              l > l_m+inch/10 and l < l_m+inch):
+        elif (prevtype == 'text' and l < l_m+inch/5 #10
+            and (sum(elementwidths)//len(elementwidths) > inch/20 or r < l + inch)):
+        # elif (prevtype == 'text' and abs(linedist_text-linedist) > inch/75 and
+        #       l > l_m+inch/10 and l < l_m+inch):
             linetype = 'apparatus1'
         elif (prevtype == 'text' and abs(linedist_text-linedist) > inch/75 and
               l < l_m+inch/10):
