@@ -184,6 +184,7 @@ When all relevant entries have a value assigned to it, the updated tables
 can be written to `tables.json` and used to generate the recognized text.
 
 [Link to the notebook](https://nbviewer.jupyter.org/github/ETCBC/syrocr/blob/bootcamp/UpdateTables.ipynb)
+
 ![updatetables](https://user-images.githubusercontent.com/35661854/51192491-4bd4d300-18ef-11e9-8d6e-b83388203e3b.png)
 
 ### Ambiguous characters
