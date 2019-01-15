@@ -183,6 +183,7 @@ bold, `s` for small caps.
 When all relevant entries have a value assigned to it, the updated tables
 can be written to `tables.json` and used to generate the recognized text.
 
+[Link to the notebook](https://nbviewer.jupyter.org/github/ETCBC/syrocr/blob/bootcamp/UpdateTables.ipynb)
 ![updatetables](https://user-images.githubusercontent.com/35661854/51192491-4bd4d300-18ef-11e9-8d6e-b83388203e3b.png)
 
 ### Ambiguous characters
@@ -201,6 +202,8 @@ When one of the parts is not disconnected from the next character, this would
 give values such as `K+` and `+yK` (a yudh followed by a broken kaph).
 These will not be automatically joined, so a combination rule must be added
 to the corrections file.
+
+![brokenkaph](https://user-images.githubusercontent.com/35661854/51203541-070a6580-190a-11e9-8cce-78b11812aded.png)
 
 ### Corrections and combinations
 
