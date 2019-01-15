@@ -18,11 +18,24 @@ def getlines(filename, dpi=None, verbose=False):
         if verbose:
             print(line)
         lines.append(line)
-    lines = replacecolumnlines(im, lines, verbose=verbose)
+    lines = replacecolumnlines2(im, lines, verbose=verbose)
 
     maincol = findmaincolumn(lines)
 
-    return linestodict(lines, maincol)
+    return linestodict2(lines, maincol)
+
+def linestodict2(lines, maincol):
+    import json
+    dictlines = []
+    for line in lines:
+        dictline = {'num': line.num,
+                    'type': line.type,
+                    'baseline': line.baseline,
+                    'main': mergeboxes(line.elements),
+                    'marginl': None,
+                    'marginr': None}
+        dictlines.append(dictline)
+    return dictlines
 
 def linestodict(lines, maincol):
     import json
@@ -54,6 +67,71 @@ def linestodict(lines, maincol):
         dictlines.append(dictline)
 
     return dictlines
+
+def replacecolumnlines2(im, lines, verbose=False):
+    # first line is either centered pagenumber,
+    # or justified page header
+    header_width = lines[0].bbox[2] - lines[0].bbox[0]
+    center = lines[0].bbox[0] + (header_width//2)
+    # gap = (center - 75, center + 75)
+    # hasgap = lambda line: not any(overlap((e[0], e[2]), gap, -10) for e in line.elements)
+    # def hasgap(elements, gap=gap):
+    #     return not any(overlap((e[0], e[2]), gap, -10) for e in line.elements)
+
+    columnlines = []
+    newlines = []
+    start = False
+
+    for i, line in enumerate(lines):
+        if line.type == 'text' and line.hascolumngap(center, gapwidth=90):
+            # gapwidth is actually about 150 pixels, but not always centered
+            columnlines.append(line)
+            if not start:
+                start = i
+        elif columnlines:
+            break
+
+    if not columnlines:
+        return lines
+
+    if verbose:
+        print(f'Replacing lines {start} to {start+len(columnlines)}...')
+
+    newlines = lines[:start]
+
+    x1,y1,x2,y2 = mergeboxes(line.bbox for line in columnlines)
+
+    linepart = None
+    for box in (im.getbbox((center,y1,x2,y2)), im.getbbox((x1,y1,center,y2))):
+        for b in getlineboundaries(im, box):
+            linebox = im.getbbox((box[0], b[0], box[2], b[1]))
+            if linepart: # merge smaller separated parts with next line
+                linebox = mergeboxes((linepart, linebox))
+                linepart = None
+            elif linebox[2] - linebox[0] < 450:
+                linepart = linebox
+                linebox = None
+            if linebox is not None:
+                newlines.append(Line(newlines, im, linebox, linetype='column'))
+                if verbose:
+                    print(newlines[-1])
+        if linepart:
+            newlines.append(Line(newlines, im, linepart, linetype='column'))
+            linepart = None
+            if verbose:
+                print(newlines[-1])
+
+    if verbose:
+        print('Adding updated last lines...')
+    # add lines after 'apparatus2' with updated line numbers
+    for line in lines[start+len(columnlines):]:
+        line.num = len(newlines)
+        newlines.append(line)
+
+        if verbose:
+            print(newlines[-1])
+
+    return newlines
 
 def replacecolumnlines(im, lines, verbose=False):
     '''Split two column lines of type 'apparatus2' '''
@@ -339,6 +417,32 @@ class Line:
 
     def guesstype(self, lines, dpi, no_header=False):
 
+        if not lines:
+            linetype = 'header'
+        else:
+            prevtype = lines[-1].type
+            header_width = lines[0].bbox[2] - lines[0].bbox[0]
+            center = lines[0].bbox[0] + (header_width//2)
+            l = self.elements[0][0]
+            r = self.elements[-1][2]
+            height = self.bbox[3] - self.bbox[1]
+            if header_width > 100:
+                l_m = lines[0].elements[0][0]
+                r_m = lines[0].elements[-1][2]
+            else:
+                l_m = center - 575 # distances from center of first page
+                r_m = center + 565
+            if prevtype == 'header' and not self.hascolumngap(center, gapwidth=100):
+                linetype = 'title'
+            elif height > 20 and l < center < r and (l > l_m + 50 or r < r_m - 50):
+                linetype = 'app'
+            else:
+                linetype = 'text'
+        return linetype
+
+
+    def guesstype_(self, lines, dpi, no_header=False):
+
         # TODO : add option no_header, to set first line on
         # some pages to 'text' instead of 'header'
         elementwidths = [x2-x1 for x1,y1,x2,y2 in self.elements]
@@ -393,9 +497,9 @@ class Line:
 
         return linetype
 
-    def hascolumngap(self, center):
-        gap1, gap2 = center-15, center+15 #TODO: distance relative to dpi
-        return any((gap2 < x1 or x2 < gap1) for x1,y1,x2,y2 in self.elements)
+    def hascolumngap(self, center, gapwidth=30):
+        gap1, gap2 = center-(gapwidth//2), center+(gapwidth//2) #TODO: distance relative to dpi
+        return all((gap2 < x1 or x2 < gap1) for x1,y1,x2,y2 in self.elements)
 
 
 def getelements(im, box=None):

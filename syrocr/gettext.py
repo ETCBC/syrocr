@@ -27,7 +27,18 @@ def verses(*args, inscr=True, spaces_file=None, **kwargs):
     chars = get_text(*args, **kwargs)
     if spaces_file is not None:
         chars = fix_spaces(chars, spaces_file=spaces_file)
-    return chars_to_verses(chars, inscr=inscr)
+    return chars_to_verses2(chars, inscr=inscr)
+
+def chars_to_verses2(chars, inscr, newlines=True):
+    line = []
+    for char in chars:
+        if newlines and char.tr == '\n':
+            yield ('', ' '.join(''.join(line).split()))
+            line = []
+        else:
+            line.append(char.tr)
+    yield ('', ' '.join(''.join(line).split()))
+
 
 def chars_to_verses(chars, inscr=True):
     """Convert sequence of characters to (tag, text) verse tuples"""
@@ -95,7 +106,8 @@ def get_text(json_textlines_dir, tables_filename,
     # TODO for now we only look at line type 'text',
     # there section 'main', which has always textsize 'normal'.
     # This should be properly set in an argument.
-    table = tables['normal']
+    # table = tables['normal']
+    table = tables['small']
 
     with os.scandir(json_textlines_dir) as sd:
         filenames = sorted(f.path for f in sd
@@ -109,7 +121,8 @@ def get_text(json_textlines_dir, tables_filename,
         for textline in textlines:
             # TODO for now we only look at line type 'text',
             # there section 'main'. This should be set in an argument.
-            if textline['type'] != 'text':
+            # if textline['type'] != 'text':
+            if textline['type'] != 'column':
                 continue
 
             line_corrections = [c for c in file_corrections
@@ -314,6 +327,7 @@ def get_textline(table, entries, basename, line_num,
     for e in m_stack:
         yield e
     m_stack.clear()
+    yield Char('\n', (False, False), '', (0,0,0,0), 0)
 
 def combineboxes(boxes):
     """Combine boxes
@@ -351,7 +365,7 @@ def combineconnections(connections):
     """
     return tuple(any(x) for x in zip(*connections))
 
-def add_spaces(chars, space_dist=10, finals='KMN', diacritics=DIACRITICS):
+def add_spaces(chars, space_dist=15, finals='KMN', diacritics=DIACRITICS):
     """
 
     finals logic assumes two things:
@@ -549,7 +563,7 @@ def flip_yudh_sade(chars):
         if stack is None:
             stack = char
             continue
-        elif stack.tr.startswith('S') and stack.box[2] > char.box[2]:
+        elif stack.tr.startswith('S') and stack.box[2] > char.box[2] and char.tr != '\n':
             # if previous char is 'S' which extends to right, beyond
             # current character: yield char and keep stack
             yield char
