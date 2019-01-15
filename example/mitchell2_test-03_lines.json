@@ -1,0 +1,639 @@
+[
+  {
+    "num": 0,
+    "type": "header",
+    "baseline": 90,
+    "main": [
+      219,
+      59,
+      1339,
+      98
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 1,
+    "type": "column",
+    "baseline": 199,
+    "main": [
+      855,
+      166,
+      1338,
+      204
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 2,
+    "type": "column",
+    "baseline": 282,
+    "main": [
+      855,
+      246,
+      1432,
+      299
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 3,
+    "type": "column",
+    "baseline": 363,
+    "main": [
+      855,
+      317,
+      1337,
+      366
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 4,
+    "type": "column",
+    "baseline": 442,
+    "main": [
+      855,
+      406,
+      1339,
+      466
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 5,
+    "type": "column",
+    "baseline": 522,
+    "main": [
+      854,
+      481,
+      1389,
+      537
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 6,
+    "type": "column",
+    "baseline": 604,
+    "main": [
+      855,
+      563,
+      1338,
+      620
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 7,
+    "type": "column",
+    "baseline": 685,
+    "main": [
+      855,
+      648,
+      1341,
+      689
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 8,
+    "type": "column",
+    "baseline": 767,
+    "main": [
+      856,
+      727,
+      1340,
+      782
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 9,
+    "type": "column",
+    "baseline": 849,
+    "main": [
+      855,
+      815,
+      1343,
+      860
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 10,
+    "type": "column",
+    "baseline": 931,
+    "main": [
+      856,
+      881,
+      1391,
+      935
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 11,
+    "type": "column",
+    "baseline": 1013,
+    "main": [
+      857,
+      973,
+      1341,
+      1039
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 12,
+    "type": "column",
+    "baseline": 1096,
+    "main": [
+      857,
+      1059,
+      1340,
+      1121
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 13,
+    "type": "column",
+    "baseline": 1177,
+    "main": [
+      856,
+      1147,
+      1340,
+      1182
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 14,
+    "type": "column",
+    "baseline": 1260,
+    "main": [
+      857,
+      1219,
+      1340,
+      1262
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 15,
+    "type": "column",
+    "baseline": 1341,
+    "main": [
+      857,
+      1295,
+      1392,
+      1352
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 16,
+    "type": "column",
+    "baseline": 1422,
+    "main": [
+      857,
+      1398,
+      1340,
+      1428
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 17,
+    "type": "column",
+    "baseline": 1506,
+    "main": [
+      859,
+      1457,
+      1341,
+      1517
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 18,
+    "type": "column",
+    "baseline": 1588,
+    "main": [
+      858,
+      1539,
+      1340,
+      1590
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 19,
+    "type": "column",
+    "baseline": 1668,
+    "main": [
+      859,
+      1633,
+      1341,
+      1678
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 20,
+    "type": "column",
+    "baseline": 1749,
+    "main": [
+      858,
+      1711,
+      1395,
+      1752
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 21,
+    "type": "column",
+    "baseline": 1831,
+    "main": [
+      860,
+      1794,
+      1343,
+      1849
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 22,
+    "type": "column",
+    "baseline": 1913,
+    "main": [
+      863,
+      1875,
+      1344,
+      1923
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 23,
+    "type": "column",
+    "baseline": 1996,
+    "main": [
+      863,
+      1955,
+      1344,
+      2011
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 24,
+    "type": "column",
+    "baseline": 2077,
+    "main": [
+      865,
+      2038,
+      1349,
+      2095
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 25,
+    "type": "column",
+    "baseline": 199,
+    "main": [
+      175,
+      161,
+      703,
+      213
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 26,
+    "type": "column",
+    "baseline": 281,
+    "main": [
+      223,
+      242,
+      703,
+      309
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 27,
+    "type": "column",
+    "baseline": 362,
+    "main": [
+      222,
+      323,
+      703,
+      378
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 28,
+    "type": "column",
+    "baseline": 444,
+    "main": [
+      224,
+      411,
+      704,
+      454
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 29,
+    "type": "column",
+    "baseline": 526,
+    "main": [
+      225,
+      487,
+      703,
+      543
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 30,
+    "type": "column",
+    "baseline": 607,
+    "main": [
+      178,
+      582,
+      704,
+      624
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 31,
+    "type": "column",
+    "baseline": 688,
+    "main": [
+      226,
+      652,
+      713,
+      703
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 32,
+    "type": "column",
+    "baseline": 770,
+    "main": [
+      226,
+      730,
+      703,
+      788
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 33,
+    "type": "column",
+    "baseline": 851,
+    "main": [
+      225,
+      815,
+      712,
+      890
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 34,
+    "type": "column",
+    "baseline": 934,
+    "main": [
+      226,
+      900,
+      711,
+      947
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 35,
+    "type": "column",
+    "baseline": 1016,
+    "main": [
+      179,
+      976,
+      705,
+      1018
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 36,
+    "type": "column",
+    "baseline": 1098,
+    "main": [
+      229,
+      1057,
+      705,
+      1115
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 37,
+    "type": "column",
+    "baseline": 1180,
+    "main": [
+      227,
+      1133,
+      706,
+      1196
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 38,
+    "type": "column",
+    "baseline": 1261,
+    "main": [
+      135,
+      1219,
+      705,
+      1276
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 39,
+    "type": "column",
+    "baseline": 1343,
+    "main": [
+      227,
+      1293,
+      706,
+      1345
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 40,
+    "type": "column",
+    "baseline": 1424,
+    "main": [
+      178,
+      1388,
+      714,
+      1443
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 41,
+    "type": "column",
+    "baseline": 1505,
+    "main": [
+      226,
+      1472,
+      706,
+      1509
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 42,
+    "type": "column",
+    "baseline": 1587,
+    "main": [
+      228,
+      1548,
+      706,
+      1601
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 43,
+    "type": "column",
+    "baseline": 1668,
+    "main": [
+      228,
+      1641,
+      707,
+      1684
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 44,
+    "type": "column",
+    "baseline": 1750,
+    "main": [
+      227,
+      1708,
+      714,
+      1754
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 45,
+    "type": "column",
+    "baseline": 1832,
+    "main": [
+      178,
+      1792,
+      707,
+      1844
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 46,
+    "type": "column",
+    "baseline": 1914,
+    "main": [
+      228,
+      1892,
+      709,
+      1925
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 47,
+    "type": "column",
+    "baseline": 1996,
+    "main": [
+      229,
+      1952,
+      710,
+      1999
+    ],
+    "marginl": null,
+    "marginr": null
+  },
+  {
+    "num": 48,
+    "type": "column",
+    "baseline": 2078,
+    "main": [
+      228,
+      2044,
+      712,
+      2082
+    ],
+    "marginl": null,
+    "marginr": null
+  }
+]

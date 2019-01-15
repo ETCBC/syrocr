@@ -1,0 +1,51 @@
+combinations:
+# separated resh dots
+  - [['yD?', '^?'], 'yr']
+  - [['$D?', '^?'], '$r']
+  - [['D?', '^?'], 'r']
+  - [['mbD?', '^?'], 'mbr']
+
+# broken gamal
+  - [['gp+', '+g'], 'gp']
+
+# interrupted broken N
+  - [['N+', '', '+N'], 'N']
+
+# broken Het
+  - [['HnN+', '+H'], 'HnN']
+
+# yudh recognized as part of broken Het
+  - [['+H'], 'y']
+#or:
+#  - [['mitchell2_test-02', 31, 4, 59], 'y']
+#  - [['mitchell2_test-05', 46, 1, 59], 'y']
+
+# broken Sade
+  - [['S', '+S?'], 'S']
+# broken Sade interrupted by yudh
+  - [['S', 'y', '+S?'], 'Sy']
+# normal dot recognized as end of Sade
+  - [['+S?'], '=.']
+# or:
+# - [['mitchell2_test-05', 13, 9, 228], '=.']
+
+corrections:
+# dotless dalath/resh:
+  - [['mitchell2_test-01', 32, 2, 122], 'sD']
+  - [['mitchell2_test-02', 4, 6, 149], 'D']
+  - [['mitchell2_test-05', 15, 7, 149], 'D']
+
+# r dot cut off by getlines
+  - [['mitchell2_test-02', 28, 3, 149], 'r']
+  - [['mitchell2_test-02', 44, 9, 240], 'r']
+  - [['mitchell2_test-03', 30, 4, 320], 'r']
+  - [['mitchell2_test-03', 30, 6, 320], 'r']
+
+# w instead of q
+  - [['mitchell2_test-05', 44, 8, 39], 'q']
+
+# end of Sade recognized as yudh
+  - [['mitchell2_test-02', 13, 4, 36], '']
+  - [['mitchell2_test-04', 17, 8, 36], '']
+  - [['mitchell2_test-04', 35, 5, 36], '']
+
