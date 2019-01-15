@@ -20,8 +20,18 @@ but may work in other setups as well.**
 Installation
 ------------
 
-- Clone the `syrocr` repository
-- In the root directory of the repository: `$ pip3 install .`
+- Clone the `bootcamp` branch of the `syrocr` repository:
+
+  ```
+  $ git clone https://github.com/ETCBC/syrocr.git -b bootcamp
+  ```
+
+- Install the syrocr package from the root directory of the repository:
+
+  ```
+  $ cd syrocr
+  $ pip3 install .
+  ```
 
 This makes the modules of the package available system-wide, so they can
 be imported in Python interactive mode:
@@ -151,9 +161,13 @@ The recognized characters are stored in the `tables.json` file, but are
 not assigned a value, since all the program can do is compare recognized
 characters with each other.
 The next step is to assign a value to all recognized characters.
-The easiest way to do this is in a Jupyter Notebook, with an interactive
-script showing the image of each textline for reference, followed by
-an image of each recognized character, with a prompt for its translation.
+The easiest way to do this is in an interactive script inside a
+[Jupyter Notebook](https://jupyter.org/install).
+
+A Jupyter Notebook is provided in the root directory of the `syrocr` package,
+named `UpdateTables.ipynb`.
+It shows the image of each textline for reference, followed by an image
+of each recognized character, with a prompt for its translation.
 
 The information that can be stored for each character is the translation
 string, an identifier for the script, and optionally a word distance value.
@@ -166,11 +180,10 @@ The default script is syriac, denoted by an empty string.
 Others are indicated with a letter: `r` for roman, `c` for cursive, `b` for
 bold, `s` for small caps.
 
-A Jupyter Notebook is provided in the root directory of the `syrocr` package,
-named `UpdateTables.ipynb`.
-
 When all relevant entries have a value assigned to it, the updated tables
 can be written to `tables.json` and used to generate the recognized text.
+
+![updatetables](https://user-images.githubusercontent.com/35661854/51192491-4bd4d300-18ef-11e9-8d6e-b83388203e3b.png)
 
 ### Ambiguous characters
 
@@ -235,7 +248,9 @@ corrections file is called `corrections.yaml` and the tables file
     $ syrocr gettext . tables.json -cf corrections.yaml
 
 This sends the recognized text to stdout, from where it can be redirected
-to a file or piped to another program. Example:
+to a file or piped to another program.
+
+Example:
 
     $ syrocr gettext . tables.json -cf corrections.yaml
     lktb' $ryr'
