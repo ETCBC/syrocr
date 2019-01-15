@@ -1,0 +1,14 @@
+GETLINES
+
+- splitting overlapping lines
+  skipping (nearly) whole lines:
+  * vts_psalms_088_2L
+  * vts_psalms_090_2L
+  example where it works well:
+  * vts_psalms_095_1R
+- getlines crashes (in drawing process) if no 'main' section
+  e.g, when noise in margin creates a line without 'main'
+- determining height baseline, with many final nun's or Sade's:
+  e.g vts_kings083_2L line 8; vts_kings086_1R line 12
+- of two dots above one character, only one is combined
+  e.g. jeremiah page vts_3_2-003 line 6 character 35-36 id 127-128
